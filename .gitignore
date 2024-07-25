@@ -1,0 +1,12 @@
+/application/__pycache__
+/application/__pycache__/*
+/application/bin
+/application/bin/*
+/application/config
+/application/config/*
+/application/logs
+/application/logs/*
+/application/results.txt
+/application/build/KIM Interface Manager/xref-KIM Interface Manager.html
+/application/build/KIM Interface Manager/warn-KIM Interface Manager.txt
+/application/KIM_Interface.py
