@@ -12,9 +12,9 @@ Future contributors from YNA may be added if necessary.
 ## Requesting Features & Changes
 
 **If you would like to request a change or a new feature:** 
-* Submit a [discussion topic](https://github.com/masonritchason/KIM-Interface/discussions/74) if you would like a change or feature;
-* Submit an [issue](https://github.com/masonritchason/KIM-Interface/issues) if you believe you have found a bug;
-* Submit a [security advisory](https://github.com/masonritchason/KIM-Interface/security/advisories) if you believe there is a security issue.
+* Submit a [discussion topic](https://github.com/masonritchason/KIM-Interface-Manager/discussions) if you would like a change or feature;
+* Submit an [issue](https://github.com/masonritchason/KIM-Interface-Manager/issues) if you believe you have found a bug;
+* Submit a [security advisory](https://github.com/masonritchason/KIM-Interface-Manager/issues/new?assignees=&labels=help+wanted&projects=&template=security-issue.md&title=%5BSecurity+Advision%5D+-+%3Cdescription%3E) if you believe there is a security issue.
 
 ## Purpose
 
