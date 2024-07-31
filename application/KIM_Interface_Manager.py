@@ -3421,6 +3421,10 @@ def informationWindow(sender, app_data, user_data):
             showLogsView("", "", "")
 
 
+## HELP WINDOW UI CALLBACKS
+#__________________________________________________________________________________________________
+
+
 ### Main Function Segment
 #__________________________________________________________________________________________________
 # verify the config folder
@@ -3516,6 +3520,8 @@ with MenuBar:
     DeleteMenu = dpg.menu(label = "Delete", indent = 300)
     # add the information menu item
     InformationMenu = dpg.menu(label = "Information", indent = 375)
+    # add the help menu item
+    HelpMenu = dpg.menu(label = "Help", indent = 480)
     # set up the individual sub-menus
     with MainMenu:
         # add a main menu button
@@ -3564,6 +3570,30 @@ with MenuBar:
             user_data = [False, True, False])
         dpg.add_menu_item(label = "Show Log View", callback = showLogsView,
             user_data = [False, False, True])
+    with HelpMenu:
+        # add necessary items (open help chapters)
+        Chap1 = dpg.add_menu_item(label = "System Environment", callback = "",
+            user_data = [])
+        Chap2 = dpg.add_menu_item(label = "The KIM Interface", callback = "",
+            user_data = [])
+        Chap3 = dpg.add_menu_item(label = "Getting Started", callback = "",
+            user_data = [])
+        Chap4 = dpg.add_menu_item(label = "Mapping Configurations", callback = "",
+            user_data = [])
+        Chap5 = dpg.add_menu_item(label = "Machines", callback = "",
+            user_data = [])
+        Chap6 = dpg.add_menu_item(label = "Models", callback = "",
+            user_data = [])
+        Chap7 = dpg.add_menu_item(label = "System Information", callback = "",
+            user_data = [])
+        Chap8 = dpg.add_menu_item(label = "i-Reporter Integration", callback = "",
+            user_data = [])
+        Chap9 = dpg.add_menu_item(label = "Administrative Notes", callback = "",
+            user_data = [])
+        # more menu opens a special window with a business card style design
+        Chap10 = dpg.add_menu_item(label = "More...", callback = "",
+            user_data = [])
+    
 
 # show viewport
 dpg.setup_dearpygui()
