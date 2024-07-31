@@ -234,17 +234,19 @@ def clearWindowRegistry(exclusions = []):
         "viewMachineWindow","editMachineWindow","removeMachineWindow","selectModelWindow",
         "addModelWindow","viewModelWindow","editModelWindow","removeModelWindow",
         "editMachineSubwindow","editModelSubwindow","urlViewWindow","resultsViewWindow",
-        "logsViewWindow","informationWindow"]
+        "logsViewWindow","informationWindow","helpWindow"]
     # for each item in the program windows list
     for Window in program_windows:
         # window is not excluded
-        if not(Window in exclusions):
+        if not (Window in exclusions):
             # check if the window exists
             if dpg.does_alias_exist(Window):
                 # delete the window connected to this alias
                 dpg.delete_item(Window)
-    # hide the startup window
-    dpg.hide_item("startupWindow")
+    # is the startup window excluded?
+    if not ("startupWindow" in exclusions):
+        # hide the startup window
+        dpg.hide_item("startupWindow")
 
 # openConfigFile reads and returns the KIM Interface configuration
 def openConfigFile():
@@ -3358,12 +3360,12 @@ def informationWindow(sender, app_data, user_data):
 
     Opens the Information window.
     """
-    # clear the subsequent model aliases
+    # clear the subsequent aliases
     clearWindowRegistry()
     # enable the InformationWindow
     InformationWindow = dpg.window(tag = "informationWindow", pos = [0, 0], width = 1280, height = 720, 
         no_move = True, no_close = True, no_collapse = True, no_title_bar = False, show = True)
-    # add items to the SelectModelWindow
+    # add items to the InformationWindow
     with InformationWindow:
         # make the new window the primary window
         dpg.set_primary_window("informationWindow", True)
@@ -3423,6 +3425,31 @@ def informationWindow(sender, app_data, user_data):
 
 ## HELP WINDOW UI CALLBACKS
 #__________________________________________________________________________________________________
+# help window
+def helpWindow(sender, app_data, user_data):
+    """helpWindow(user_data = [chapter])
+    
+    Navigation Menu -> Help Window
+    
+    chapter: int; indicates the chapter to render in the help menu.
+    header: str; splach text to place at the top of the window.
+
+    Opens the help pages window.
+    """
+    # get the help chapter info
+    chapter = user_data[0]
+    header = user_data[1]
+    # clear the subsequent aliases
+    clearWindowRegistry("startupWindow")
+    # enable the helpWindow
+    HelpWindow = dpg.window(tag = "helpWindow", label = ("> Chapter " + str(chapter) + " - " + header),
+        pos = [(dpg.get_viewport_width() - 540), 0], width = 510, height = 660, no_move = False, 
+        no_close = False, no_collapse = True, no_title_bar = False, show = True)
+    # add items to the HelpWindow
+    with HelpWindow:
+        # get the appropriate chapter and information
+        print("")
+        
 
 
 ### Main Function Segment
@@ -3572,27 +3599,27 @@ with MenuBar:
             user_data = [False, False, True])
     with HelpMenu:
         # add necessary items (open help chapters)
-        Chap1 = dpg.add_menu_item(label = "System Environment", callback = "",
-            user_data = [])
-        Chap2 = dpg.add_menu_item(label = "The KIM Interface", callback = "",
-            user_data = [])
-        Chap3 = dpg.add_menu_item(label = "Getting Started", callback = "",
-            user_data = [])
-        Chap4 = dpg.add_menu_item(label = "Mapping Configurations", callback = "",
-            user_data = [])
-        Chap5 = dpg.add_menu_item(label = "Machines", callback = "",
-            user_data = [])
-        Chap6 = dpg.add_menu_item(label = "Models", callback = "",
-            user_data = [])
-        Chap7 = dpg.add_menu_item(label = "System Information", callback = "",
-            user_data = [])
-        Chap8 = dpg.add_menu_item(label = "i-Reporter Integration", callback = "",
-            user_data = [])
-        Chap9 = dpg.add_menu_item(label = "Administrative Notes", callback = "",
-            user_data = [])
+        Chap1 = dpg.add_menu_item(label = "System Environment", callback = helpWindow,
+            user_data = [1, "System Environment"])
+        Chap2 = dpg.add_menu_item(label = "The KIM Interface", callback = helpWindow,
+            user_data = [2, "The KIM Interface"])
+        Chap3 = dpg.add_menu_item(label = "Getting Started", callback = helpWindow,
+            user_data = [3, "Getting Started"])
+        Chap4 = dpg.add_menu_item(label = "Mapping Configurations", callback = helpWindow,
+            user_data = [4, "Mapping Configurations"])
+        Chap5 = dpg.add_menu_item(label = "Machines", callback = helpWindow,
+            user_data = [5, "Machines"])
+        Chap6 = dpg.add_menu_item(label = "Models", callback = helpWindow,
+            user_data = [6, "Models"])
+        Chap7 = dpg.add_menu_item(label = "System Information", callback = helpWindow,
+            user_data = [7, "System Information"])
+        Chap8 = dpg.add_menu_item(label = "i-Reporter Integration", callback = helpWindow,
+            user_data = [8, "i-Reporter Integration"])
+        Chap9 = dpg.add_menu_item(label = "Administrative Notes", callback = helpWindow,
+            user_data = [9, "Administrative Notes"])
         # more menu opens a special window with a business card style design
-        Chap10 = dpg.add_menu_item(label = "More...", callback = "",
-            user_data = [])
+        Chap10 = dpg.add_menu_item(label = "More...", callback = helpWindow,
+            user_data = [10, ""])
     
 
 # show viewport
