@@ -3427,57 +3427,77 @@ def informationWindow(sender, app_data, user_data):
 #__________________________________________________________________________________________________
 # help window
 def helpWindow(sender, app_data, user_data):
-    """helpWindow(user_data = [chapter])
+    """helpWindow(user_data = [chapter, page_num, pos = [view - 685, 0]])
     
     Navigation Menu -> Help Window
     
     chapter: int; indicates the chapter to render in the help menu.
-    header: str; splash text to place at the top of the window.
-    pages: [images]; list of page images to use for the help window.
     page_num: int; the page number to render on the help window.
+    pos: [x, y]; (optional) location of the help window. 
+        Defaults to the right edge of the viewport.
 
     Opens the help pages window.
     """
+    # save the chapter titles
+    chapter_titles = ["System Environment", "The KIM Interface", "Getting Started", 
+        "Mapping Configurations", "Machines", "Models", "System Information", 
+        "i-Reporter Integration", "Administrative Notes"]
     # get the help chapter info
     chapter = user_data[0]
-    header = user_data[1]
-    pages = user_data[2]
-    page_num = user_data[3]
-    # clear the subsequent aliases
-    clearWindow("helpWindow")
+    page_num = user_data[1]
+    pos = user_data[2]
+    # is there a position passed?
+    if not pos:
+        # default value
+        pos = [(dpg.get_viewport_width() - 685), 0]
+    # else use the current position of the window
+    else:
+        pos = dpg.get_item_pos("helpWindow")
     # set the path to the folder of chapter pages in system files
     temp = os.path.join(sys_env_dir, "build", "help", "chap" + str(chapter))
-    # does the window already have the pages?
-    if not pages:
-        # add each image to the list of pages
-        for root, dirs, files in os.walk(top = temp, topdown = False):
-            # for each file in the directory
-            for file in files:
-                # pull the image from the folder
-                page = dpg.load_image(os.path.join(root, file))
-                # add the image to the pages list
-                pages.append(page)
+    # hold a list of the page images
+    pages = []
+    # add each image to the list of pages
+    for root, dirs, files in os.walk(top = temp, topdown = False):
+        # for each file in the directory
+        for file in files:
+            # pull the image from the folder
+            page = dpg.load_image(os.path.join(root, file))
+            # add the image to the pages list
+            pages.append(page)
     # create a texture registry
     with dpg.texture_registry():
         # generate a texture from the page
         Page = dpg.add_static_texture(width = pages[page_num][0], height = pages[page_num][1], 
             default_value = pages[page_num][3])
+    # clear the subsequent aliases
+    clearWindow("helpWindow")
     # enable the helpWindow
-    HelpWindow = dpg.window(tag = "helpWindow", label = ("> Chapter " + str(chapter) + " - " + header),
-        pos = [(dpg.get_viewport_width() - 685), 0], width = 670, height = 660, no_move = False, 
+    HelpWindow = dpg.window(tag = "helpWindow", label = ("> Chapter " + str(chapter) + " - " 
+        + chapter_titles[chapter - 1]), pos = pos, width = 670, height = 660, no_move = False, 
         no_close = False, no_collapse = True, no_title_bar = False, show = True)
     # add items to the HelpWindow
     with HelpWindow:
+        # add previous chapter button if there is a previous chapter
+        if chapter > 1:
+            # add the previous chapter button
+            dpg.add_button(label = "<< chapter " + str(chapter - 1), width = 100, pos = [185, 25], 
+                callback = helpWindow, user_data = [chapter - 1, 0, "update"])
         # add previous page button if there is a previous page
         if page_num > 0:
             # add the previous button
-            dpg.add_button(label = "<<", width = 30, pos = [300, 25], callback = helpWindow,
-                user_data = [chapter, header, pages, int(page_num) - 1])
+            dpg.add_button(label = "< pg", width = 40, pos = [290, 25], callback = helpWindow,
+                user_data = [chapter, page_num - 1, "update"])
         # add next page button if there is a next page
         if page_num < (len(pages) - 1):
             # add the next button
-            dpg.add_button(label = ">>", width = 30, pos = [335, 25], callback = helpWindow,
-                user_data = [chapter, header, pages, int(page_num) + 1])
+            dpg.add_button(label = "pg >", width = 40, pos = [335, 25], callback = helpWindow,
+                user_data = [chapter, page_num + 1, "update"])
+        # add next chapter button if there is a next chapter
+        if chapter < 9:
+            # add the next chapter button
+            dpg.add_button(label = ">> chapter " + str(chapter + 1), width = 100, pos = [380, 25], 
+                callback = helpWindow, user_data = [chapter + 1, 0, "update"])
         # show the requested help page
         dpg.add_image(texture_tag = Page, pos = [0, 50])
 
@@ -3630,26 +3650,26 @@ with MenuBar:
     with HelpMenu:
         # add necessary items (open help chapters)
         Chap1 = dpg.add_menu_item(label = "System Environment", callback = helpWindow,
-            user_data = [1, "System Environment", [], 0])
+            user_data = [1, 0, []])
         Chap2 = dpg.add_menu_item(label = "The KIM Interface", callback = helpWindow,
-            user_data = [2, "The KIM Interface", [], 0])
+            user_data = [2, 0, []])
         Chap3 = dpg.add_menu_item(label = "Getting Started", callback = helpWindow,
-            user_data = [3, "Getting Started", [], 0])
+            user_data = [3, 0, []])
         Chap4 = dpg.add_menu_item(label = "Mapping Configurations", callback = helpWindow,
-            user_data = [4, "Mapping Configurations", [], 0])
+            user_data = [4, 0, []])
         Chap5 = dpg.add_menu_item(label = "Machines", callback = helpWindow,
-            user_data = [5, "Machines", [], 0])
+            user_data = [5, 0, []])
         Chap6 = dpg.add_menu_item(label = "Models", callback = helpWindow,
-            user_data = [6, "Models", [], 0])
+            user_data = [6, 0, []])
         Chap7 = dpg.add_menu_item(label = "System Information", callback = helpWindow,
-            user_data = [7, "System Information", [], 0])
+            user_data = [7, 0, []])
         Chap8 = dpg.add_menu_item(label = "i-Reporter Integration", callback = helpWindow,
-            user_data = [8, "i-Reporter Integration", [], 0])
+            user_data = [8, 0, []])
         Chap9 = dpg.add_menu_item(label = "Administrative Notes", callback = helpWindow,
-            user_data = [9, "Administrative Notes", [], 0])
+            user_data = [9, 0, []])
         # more menu opens a special window with a business card style design
         Chap10 = dpg.add_menu_item(label = "More...", callback = helpWindow,
-            user_data = [10, ""])
+            user_data = [10, "", []])
     
 
 # show viewport
