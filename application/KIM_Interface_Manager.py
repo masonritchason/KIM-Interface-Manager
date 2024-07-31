@@ -17,6 +17,7 @@ from json import loads, dumps
 from re import compile
 from shutil import copytree
 from datetime import datetime
+from webbrowser import open as web
 
 
 ### Global Definition Segmemt
@@ -234,7 +235,7 @@ def clearWindowRegistry(exclusions = []):
         "viewMachineWindow","editMachineWindow","removeMachineWindow","selectModelWindow",
         "addModelWindow","viewModelWindow","editModelWindow","removeModelWindow",
         "editMachineSubwindow","editModelSubwindow","urlViewWindow","resultsViewWindow",
-        "logsViewWindow","informationWindow","helpWindow"]
+        "logsViewWindow","informationWindow","helpWindow","contactPopup"]
     # for each item in the program windows list
     for Window in program_windows:
         # window is not excluded
@@ -3425,6 +3426,59 @@ def informationWindow(sender, app_data, user_data):
 
 ## HELP WINDOW UI CALLBACKS
 #__________________________________________________________________________________________________
+# open github repo page
+def openInBrowser(sender, app_data, user_data):
+    """openInBrowser(user_data = [])
+    
+    opens the github repository in the user's web browser
+    """
+    web("https://github.com/masonritchason/KIM-Interface-Manager", new = 0, autoraise = True)
+
+# generate an email draft
+def emailDraft():
+    """emailDraft(user_data = [])
+    
+    opens a new email addressed to Mason Ritchason (masonritchason@gmail.com)
+    """
+    # set a mailto link
+    mailto = "mailto:masonritchason@gmail.com?subject=[KIM Interface Manager] Help Request&body=Hello, my name is <your name here>.I am requesting help with your software KIM Interface Manager.My issue is that <describe your issue>.I encounter it when I <describe how you create/recreate the issue>.<include extra info, context, images, etc.>I would love to see this issue resolved by <describe your suggested solution>."
+
+    # open the mailto link
+    web(mailto)
+
+# contact card popup
+def contactCard(sender, app_data, user_data):
+    """contactCard(user_data = [])
+    
+    Navigation Menu -> Contact Card
+
+    Opens a small "More help" contact card popup.
+    """
+    # clear the subsequent aliases
+    clearWindow("contactPopup")
+    # create the window
+    ContactCard = dpg.window(tag = "contactPopup", label = "More Help", width = 500, height = 225, 
+        no_move = False, no_close = False, no_collapse = True, no_resize = True, 
+        pos = [(dpg.get_viewport_client_width() / 2) - 250, (dpg.get_viewport_client_height() / 2) - 137.5])
+    # add items to the popup
+    with ContactCard:
+        # add a title label
+        dpg.add_text("Need More Help?", color = [150, 150, 255])
+        # add help instructions
+        dpg.add_text("Make sure to consult the KIM Interface User's Manual.\n" +
+            "Answers to questions and solutions to many issues can be found there.\n" +
+            "Consult your IT Department with issues as well. If you are still\n" +
+            "unable to solve your problem after doing so, click below to visit\n" +
+            "the public KIM Interface Manager support page:")
+        # add a go to github button
+        dpg.add_button(label = "KIM Interface Manager on GitHub", width = 250, pos = [135, 130],
+            callback = openInBrowser)
+        # email label text
+        dpg.add_text("Additionally, feel free to email Mason Ritchason with any questions:", pos = [10, 170])
+        # email text
+        dpg.add_button(label = "Email masonritchason@gmail.com", width = 250, pos = [135, 195],
+            callback = emailDraft)
+
 # help window
 def helpWindow(sender, app_data, user_data):
     """helpWindow(user_data = [chapter, page_num, pos = [view - 685, 0]])
@@ -3668,8 +3722,7 @@ with MenuBar:
         Chap9 = dpg.add_menu_item(label = "Administrative Notes", callback = helpWindow,
             user_data = [9, 0, []])
         # more menu opens a special window with a business card style design
-        Chap10 = dpg.add_menu_item(label = "More...", callback = helpWindow,
-            user_data = [10, "", []])
+        Chap10 = dpg.add_menu_item(label = "More...", callback = contactCard)
     
 
 # show viewport
