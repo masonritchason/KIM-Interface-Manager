@@ -235,7 +235,7 @@ def clearWindowRegistry(exclusions = []):
         "viewMachineWindow","editMachineWindow","removeMachineWindow","selectModelWindow",
         "addModelWindow","viewModelWindow","editModelWindow","removeModelWindow",
         "editMachineSubwindow","editModelSubwindow","urlViewWindow","resultsViewWindow",
-        "logsViewWindow","informationWindow","helpWindow","contactPopup","changelogWindow"]
+        "logsViewWindow","informationWindow","helpWindow","contactPopup"]
     # for each item in the program windows list
     for Window in program_windows:
         # window is not excluded
@@ -248,6 +248,7 @@ def clearWindowRegistry(exclusions = []):
     if not ("startupWindow" in exclusions):
         # hide the startup window
         dpg.hide_item("startupWindow")
+        dpg.hide_item("changelogWindow")
 
 # openConfigFile reads and returns the KIM Interface configuration
 def openConfigFile():
@@ -1112,6 +1113,7 @@ def returnToStartup(sender, app_data, user_data):
     clearWindowRegistry()
     # show the startup window
     dpg.show_item("startupWindow")
+    dpg.show_item("changelogWindow")
     # make the startup window the primary window
     dpg.set_primary_window("startupWindow", True)
 
