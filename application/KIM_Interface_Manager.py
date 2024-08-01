@@ -3635,15 +3635,35 @@ with StartupWindow:
     # get the changelog.md text
     File = open(temp, 'r')
     # read and close the file
-    changetext = File.read()
+    lines = File.readlines()
     File.close()
+    # remove the first 4 lines (header)
+    lines = lines[4:]
+    # hold a changetext variable
+    changetext = ""
+    # for each line in the file
+    for line in lines:
+        # if the line starts as a note
+        if line[0] == '>':
+            # ignore the line
+            continue
+        # debug
+        print("Removing '#' or '`' from line '" + line + "'")
+        # process the markdown format
+        line = line.replace('# ', '')
+        line = line.replace('#', '')
+        line = line.replace('`', '')
+        # add the remaining line to the changetext
+        changetext += "\n" + str(line)
     # create a changelog window element
-    Changelog = dpg.window(tag = "changelogWindow", pos = [500, 92], width = 500, height = 550, 
+    Changelog = dpg.window(tag = "changelogWindow", pos = [865, 125], width = 500, height = 500, 
         no_move = True, no_close = True, no_collapse = True, no_title_bar = True, show = True,
-        no_background = True, no_resize = True)
+        no_background = False, no_resize = True)
     with Changelog:
         # add a text object to show the changelog
         dpg.add_text(changetext, wrap = 475)
+    # add a changelog label
+    dpg.add_text("Changelog - Latest", pos = [865, 100])
     # add an exit manager button
     dpg.add_button(label = "Save & Exit", width = 300, height = 50, 
         pos = [10, 620], callback = closeProgram)
