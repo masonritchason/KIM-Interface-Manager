@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+### KIM Interface v1.2.0
+##### What's Changed in `v1.2.0`
+* `CHANGELOG.md` view added in startup window.
+* `Help` window added in-app:
+    * Users are able to open a windowed view of the user's manual in the `Manager`.
+    * A `Contact Card` has been added to allow quick access to more help.
+* KIM Interface v1.2.0 by @masonritchason in https://github.com/masonritchason/KIM-Interface-Manager/pull/5
+
 #### Patch 3 `v1.1.43`
 ##### What's Changed
 * GitHub Features
