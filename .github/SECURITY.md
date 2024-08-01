@@ -6,12 +6,9 @@ KIM Interface versions supported with full security monitoring and patches:
 
 | Version | Supported          |
 | ------- | ------------------ |
+| 1.2.0   | :white_check_mark: |
 | 1.1.43  | :white_check_mark: |
-| 1.1.42  | :x:                |
-| 1.1.41  | :x:                |
-| 1.1.4   | :x:                |
-| 1.1.31  | :white_check_mark: |
-| <1.1.31 | :x:                |
+| <1.1.43 | :x:                |
 
 ## Reporting a Vulnerability
 
