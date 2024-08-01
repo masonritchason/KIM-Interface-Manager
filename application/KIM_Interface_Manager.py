@@ -1694,6 +1694,8 @@ def duplicateConfig(sender, app_data, user_data):
     Machine = user_data[2]
     # get the config to duplicate
     DuplicatedConfig = user_data[3]
+    # clear the duplicateConfigPopup window
+    clearWindow("duplicateConfigPopup")
     # create a popup to get the duplicate config's ID
     Popup = dpg.window(tag = "duplicateConfigPopup", popup = True, no_open_over_existing_popup = False,
         width = 400, height = 250, no_move = True, no_close = True, no_collapse = True, no_resize = True,
