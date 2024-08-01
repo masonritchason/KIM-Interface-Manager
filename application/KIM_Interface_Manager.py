@@ -235,7 +235,7 @@ def clearWindowRegistry(exclusions = []):
         "viewMachineWindow","editMachineWindow","removeMachineWindow","selectModelWindow",
         "addModelWindow","viewModelWindow","editModelWindow","removeModelWindow",
         "editMachineSubwindow","editModelSubwindow","urlViewWindow","resultsViewWindow",
-        "logsViewWindow","informationWindow","helpWindow","contactPopup"]
+        "logsViewWindow","informationWindow","helpWindow","contactPopup","changelogWindow"]
     # for each item in the program windows list
     for Window in program_windows:
         # window is not excluded
@@ -3630,6 +3630,20 @@ with StartupWindow:
                  "To add a new configuration, use the Top Menu to navigate\n" +
                  "to the 'New...' menu and select 'Configuration'.", 
                  pos = [10, 125])
+    # set temp path to the changelog.md file
+    temp = os.path.join(sys_env_dir[:len(sys_env_dir) - 11], ".github", "CHANGELOG.md")
+    # get the changelog.md text
+    File = open(temp, 'r')
+    # read and close the file
+    changetext = File.read()
+    File.close()
+    # create a changelog window element
+    Changelog = dpg.window(tag = "changelogWindow", pos = [500, 92], width = 500, height = 550, 
+        no_move = True, no_close = True, no_collapse = True, no_title_bar = True, show = True,
+        no_background = True, no_resize = True)
+    with Changelog:
+        # add a text object to show the changelog
+        dpg.add_text(changetext, wrap = 475)
     # add an exit manager button
     dpg.add_button(label = "Save & Exit", width = 300, height = 50, 
         pos = [10, 620], callback = closeProgram)
