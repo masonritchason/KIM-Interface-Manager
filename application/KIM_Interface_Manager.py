@@ -3649,8 +3649,6 @@ with StartupWindow:
         if line[0] == '>':
             # ignore the line
             continue
-        # debug
-        print("Removing '#' or '`' from line '" + line + "'")
         # process the markdown format
         line = line.replace('# ', '')
         line = line.replace('#', '')
