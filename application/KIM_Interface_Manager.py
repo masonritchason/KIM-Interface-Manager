@@ -17,6 +17,7 @@ from json import loads, dumps
 from re import compile
 from shutil import copytree
 from datetime import datetime
+from webbrowser import open as web
 
 
 ### Global Definition Segmemt
@@ -234,17 +235,20 @@ def clearWindowRegistry(exclusions = []):
         "viewMachineWindow","editMachineWindow","removeMachineWindow","selectModelWindow",
         "addModelWindow","viewModelWindow","editModelWindow","removeModelWindow",
         "editMachineSubwindow","editModelSubwindow","urlViewWindow","resultsViewWindow",
-        "logsViewWindow","informationWindow"]
+        "logsViewWindow","informationWindow","helpWindow","contactPopup"]
     # for each item in the program windows list
     for Window in program_windows:
         # window is not excluded
-        if not(Window in exclusions):
+        if not (Window in exclusions):
             # check if the window exists
             if dpg.does_alias_exist(Window):
                 # delete the window connected to this alias
                 dpg.delete_item(Window)
-    # hide the startup window
-    dpg.hide_item("startupWindow")
+    # is the startup window excluded?
+    if not ("startupWindow" in exclusions):
+        # hide the startup window
+        dpg.hide_item("startupWindow")
+        dpg.hide_item("changelogWindow")
 
 # openConfigFile reads and returns the KIM Interface configuration
 def openConfigFile():
@@ -1109,6 +1113,7 @@ def returnToStartup(sender, app_data, user_data):
     clearWindowRegistry()
     # show the startup window
     dpg.show_item("startupWindow")
+    dpg.show_item("changelogWindow")
     # make the startup window the primary window
     dpg.set_primary_window("startupWindow", True)
 
@@ -3358,12 +3363,12 @@ def informationWindow(sender, app_data, user_data):
 
     Opens the Information window.
     """
-    # clear the subsequent model aliases
+    # clear the subsequent aliases
     clearWindowRegistry()
     # enable the InformationWindow
     InformationWindow = dpg.window(tag = "informationWindow", pos = [0, 0], width = 1280, height = 720, 
         no_move = True, no_close = True, no_collapse = True, no_title_bar = False, show = True)
-    # add items to the SelectModelWindow
+    # add items to the InformationWindow
     with InformationWindow:
         # make the new window the primary window
         dpg.set_primary_window("informationWindow", True)
@@ -3419,6 +3424,138 @@ def informationWindow(sender, app_data, user_data):
         if user_data[2]:
             # show the Logs view on open
             showLogsView("", "", "")
+
+
+## HELP WINDOW UI CALLBACKS
+#__________________________________________________________________________________________________
+# open github repo page
+def openInBrowser(sender, app_data, user_data):
+    """openInBrowser(user_data = [])
+    
+    opens the github repository in the user's web browser
+    """
+    web("https://github.com/masonritchason/KIM-Interface-Manager", new = 0, autoraise = True)
+
+# generate an email draft
+def emailDraft():
+    """emailDraft(user_data = [])
+    
+    opens a new email addressed to Mason Ritchason (masonritchason@gmail.com)
+    """
+    # set a mailto link
+    mailto = "mailto:masonritchason@gmail.com?subject=[KIM Interface Manager] Help Request&body=Hello, my name is <your name here>.I am requesting help with your software KIM Interface Manager.My issue is that <describe your issue>.I encounter it when I <describe how you create/recreate the issue>.<include extra info, context, images, etc.>I would love to see this issue resolved by <describe your suggested solution>."
+
+    # open the mailto link
+    web(mailto)
+
+# contact card popup
+def contactCard(sender, app_data, user_data):
+    """contactCard(user_data = [])
+    
+    Navigation Menu -> Contact Card
+
+    Opens a small "More help" contact card popup.
+    """
+    # clear the subsequent aliases
+    clearWindow("contactPopup")
+    # create the window
+    ContactCard = dpg.window(tag = "contactPopup", label = "More Help", width = 500, height = 225, 
+        no_move = False, no_close = False, no_collapse = True, no_resize = True, 
+        pos = [(dpg.get_viewport_client_width() / 2) - 250, (dpg.get_viewport_client_height() / 2) - 137.5])
+    # add items to the popup
+    with ContactCard:
+        # add a title label
+        dpg.add_text("Need More Help?", color = [150, 150, 255])
+        # add help instructions
+        dpg.add_text("Make sure to consult the KIM Interface User's Manual.\n" +
+            "Answers to questions and solutions to many issues can be found there.\n" +
+            "Consult your IT Department with issues as well. If you are still\n" +
+            "unable to solve your problem after doing so, click below to visit\n" +
+            "the public KIM Interface Manager support page:")
+        # add a go to github button
+        dpg.add_button(label = "KIM Interface Manager on GitHub", width = 250, pos = [135, 130],
+            callback = openInBrowser)
+        # email label text
+        dpg.add_text("Additionally, feel free to email Mason Ritchason with any questions:", pos = [10, 170])
+        # email text
+        dpg.add_button(label = "Email masonritchason@gmail.com", width = 250, pos = [135, 195],
+            callback = emailDraft)
+
+# help window
+def helpWindow(sender, app_data, user_data):
+    """helpWindow(user_data = [chapter, page_num, pos = [view - 685, 0]])
+    
+    Navigation Menu -> Help Window
+    
+    chapter: int; indicates the chapter to render in the help menu.
+    page_num: int; the page number to render on the help window.
+    pos: [x, y]; (optional) location of the help window. 
+        Defaults to the right edge of the viewport.
+
+    Opens the help pages window.
+    """
+    # save the chapter titles
+    chapter_titles = ["System Environment", "The KIM Interface", "Getting Started", 
+        "Mapping Configurations", "Machines", "Models", "System Information", 
+        "i-Reporter Integration", "Administrative Notes"]
+    # get the help chapter info
+    chapter = user_data[0]
+    page_num = user_data[1]
+    pos = user_data[2]
+    # is there a position passed?
+    if not pos:
+        # default value
+        pos = [(dpg.get_viewport_width() - 685), 0]
+    # else use the current position of the window
+    else:
+        pos = dpg.get_item_pos("helpWindow")
+    # set the path to the folder of chapter pages in system files
+    temp = os.path.join(sys_env_dir, "build", "help", "chap" + str(chapter))
+    # hold a list of the page images
+    pages = []
+    # add each image to the list of pages
+    for root, dirs, files in os.walk(top = temp, topdown = False):
+        # for each file in the directory
+        for file in files:
+            # pull the image from the folder
+            page = dpg.load_image(os.path.join(root, file))
+            # add the image to the pages list
+            pages.append(page)
+    # create a texture registry
+    with dpg.texture_registry():
+        # generate a texture from the page
+        Page = dpg.add_static_texture(width = pages[page_num][0], height = pages[page_num][1], 
+            default_value = pages[page_num][3])
+    # clear the subsequent aliases
+    clearWindow("helpWindow")
+    # enable the helpWindow
+    HelpWindow = dpg.window(tag = "helpWindow", label = ("> Chapter " + str(chapter) + " - " 
+        + chapter_titles[chapter - 1]), pos = pos, width = 670, height = 660, no_move = False, 
+        no_close = False, no_collapse = True, no_title_bar = False, show = True)
+    # add items to the HelpWindow
+    with HelpWindow:
+        # add previous chapter button if there is a previous chapter
+        if chapter > 1:
+            # add the previous chapter button
+            dpg.add_button(label = "<< chapter " + str(chapter - 1), width = 100, pos = [185, 25], 
+                callback = helpWindow, user_data = [chapter - 1, 0, "update"])
+        # add previous page button if there is a previous page
+        if page_num > 0:
+            # add the previous button
+            dpg.add_button(label = "< pg", width = 40, pos = [290, 25], callback = helpWindow,
+                user_data = [chapter, page_num - 1, "update"])
+        # add next page button if there is a next page
+        if page_num < (len(pages) - 1):
+            # add the next button
+            dpg.add_button(label = "pg >", width = 40, pos = [335, 25], callback = helpWindow,
+                user_data = [chapter, page_num + 1, "update"])
+        # add next chapter button if there is a next chapter
+        if chapter < 9:
+            # add the next chapter button
+            dpg.add_button(label = ">> chapter " + str(chapter + 1), width = 100, pos = [380, 25], 
+                callback = helpWindow, user_data = [chapter + 1, 0, "update"])
+        # show the requested help page
+        dpg.add_image(texture_tag = Page, pos = [0, 50])
 
 
 ### Main Function Segment
@@ -3495,6 +3632,38 @@ with StartupWindow:
                  "To add a new configuration, use the Top Menu to navigate\n" +
                  "to the 'New...' menu and select 'Configuration'.", 
                  pos = [10, 125])
+    # set temp path to the changelog.md file
+    temp = os.path.join(sys_env_dir[:len(sys_env_dir) - 11], ".github", "CHANGELOG.md")
+    # get the changelog.md text
+    File = open(temp, 'r')
+    # read and close the file
+    lines = File.readlines()
+    File.close()
+    # remove the first 4 lines (header)
+    lines = lines[4:]
+    # hold a changetext variable
+    changetext = ""
+    # for each line in the file
+    for line in lines:
+        # if the line starts as a note
+        if line[0] == '>':
+            # ignore the line
+            continue
+        # process the markdown format
+        line = line.replace('# ', '')
+        line = line.replace('#', '')
+        line = line.replace('`', '')
+        # add the remaining line to the changetext
+        changetext += "\n" + str(line)
+    # create a changelog window element
+    Changelog = dpg.window(tag = "changelogWindow", pos = [865, 125], width = 500, height = 500, 
+        no_move = True, no_close = True, no_collapse = True, no_title_bar = True, show = True,
+        no_background = False, no_resize = True)
+    with Changelog:
+        # add a text object to show the changelog
+        dpg.add_text(changetext, wrap = 475)
+    # add a changelog label
+    dpg.add_text("Changelog - Latest", pos = [865, 100])
     # add an exit manager button
     dpg.add_button(label = "Save & Exit", width = 300, height = 50, 
         pos = [10, 620], callback = closeProgram)
@@ -3516,6 +3685,8 @@ with MenuBar:
     DeleteMenu = dpg.menu(label = "Delete", indent = 300)
     # add the information menu item
     InformationMenu = dpg.menu(label = "Information", indent = 375)
+    # add the help menu item
+    HelpMenu = dpg.menu(label = "Help", indent = 480)
     # set up the individual sub-menus
     with MainMenu:
         # add a main menu button
@@ -3564,6 +3735,29 @@ with MenuBar:
             user_data = [False, True, False])
         dpg.add_menu_item(label = "Show Log View", callback = showLogsView,
             user_data = [False, False, True])
+    with HelpMenu:
+        # add necessary items (open help chapters)
+        Chap1 = dpg.add_menu_item(label = "System Environment", callback = helpWindow,
+            user_data = [1, 0, []])
+        Chap2 = dpg.add_menu_item(label = "The KIM Interface", callback = helpWindow,
+            user_data = [2, 0, []])
+        Chap3 = dpg.add_menu_item(label = "Getting Started", callback = helpWindow,
+            user_data = [3, 0, []])
+        Chap4 = dpg.add_menu_item(label = "Mapping Configurations", callback = helpWindow,
+            user_data = [4, 0, []])
+        Chap5 = dpg.add_menu_item(label = "Machines", callback = helpWindow,
+            user_data = [5, 0, []])
+        Chap6 = dpg.add_menu_item(label = "Models", callback = helpWindow,
+            user_data = [6, 0, []])
+        Chap7 = dpg.add_menu_item(label = "System Information", callback = helpWindow,
+            user_data = [7, 0, []])
+        Chap8 = dpg.add_menu_item(label = "i-Reporter Integration", callback = helpWindow,
+            user_data = [8, 0, []])
+        Chap9 = dpg.add_menu_item(label = "Administrative Notes", callback = helpWindow,
+            user_data = [9, 0, []])
+        # more menu opens a special window with a business card style design
+        Chap10 = dpg.add_menu_item(label = "More...", callback = contactCard)
+    
 
 # show viewport
 dpg.setup_dearpygui()

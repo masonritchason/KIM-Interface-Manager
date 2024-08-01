@@ -1,4 +1,6 @@
-('C:\\Users\\ritchasonm\\Desktop\\build\\KIM Interface Manager\\PYZ-00.pyz',
+('C:\\Users\\ritchasonm\\Desktop\\Software Projects\\KIM Interface '
+ 'Project\\KIM Interface Manager\\application\\build\\KIM Interface '
+ 'Manager\\PYZ-00.pyz',
  [('_compat_pickle',
    'C:\\Users\\ritchasonm\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\_compat_pickle.py',
    'PYMODULE'),
@@ -263,6 +265,9 @@
   ('selectors',
    'C:\\Users\\ritchasonm\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\selectors.py',
    'PYMODULE'),
+  ('shlex',
+   'C:\\Users\\ritchasonm\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\shlex.py',
+   'PYMODULE'),
   ('shutil',
    'C:\\Users\\ritchasonm\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\shutil.py',
    'PYMODULE'),
@@ -313,6 +318,9 @@
    'PYMODULE'),
   ('urllib.parse',
    'C:\\Users\\ritchasonm\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\urllib\\parse.py',
+   'PYMODULE'),
+  ('webbrowser',
+   'C:\\Users\\ritchasonm\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\webbrowser.py',
    'PYMODULE'),
   ('zipfile',
    'C:\\Users\\ritchasonm\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\zipfile\\__init__.py',

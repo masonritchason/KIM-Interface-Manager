@@ -5,7 +5,7 @@ a = Analysis(
     ['KIM_Interface_Manager.py'],
     pathex=[],
     binaries=[],
-    datas=[],
+    datas=[('C:\\Users\\ritchasonm\\Desktop\\Software Projects\\KIM Interface Project\\KIM Interface Manager\\application\\KIM_Interface.py', '.')],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
