@@ -679,7 +679,7 @@ def validateEditConfigInput(Model, Machine, Config, new_id, prior_id, checks, in
                 # add it to the list
                 map_list.append(
                     {"item":Config['configuration'][index]['item'], "sheet":sheet, 
-                    "sheet":int(sheet), "cluster":int(cluster), "value":""})
+                    "sheet":int(sheet), "cluster":int(cluster), "type":"string", "value":""})
         # increment the model_info_loop
         index += 1
     # if here, the Config information can make a Config Object
