@@ -128,18 +128,30 @@ def checkBackupCount():
     """
     # save the backups directory
     past_backups_dir = os.path.join(sys_env_dir, "bin", "backups", "past")
-    # get the files in the past backups folder
-    files = os.listdir(past_backups_dir)
     # check the number of folders in the past backups folder
-    while len(files) >= 25:
-        # there are ten folders in the past backups folder; remove oldest
-        files = sorted(files, key = os.path.getctime)
-        # remove the oldest file (first in the list)
-        os.remove(files[0])
-        files.pop(0)
-        # rescan the size of the folder
-        files = os.listdir(past_backups_dir)
-    # once here, there is room for another backup in past backups
+    while len(os.listdir(past_backups_dir)) >= 25:
+        # scan the size of the folder
+        backups = os.listdir(past_backups_dir)
+        # does the directory need trimmed?
+        if len(backups) >= 25:
+            # add the dir root to each file name
+            for i in range(len(backups)):
+                # add the dir root
+                backups[i] = os.path.join(past_backups_dir, backups[i])
+            # there are 25+ folders in the past backups folder; remove oldest
+            backups = sorted(backups, key = os.path.getctime)
+            # clear the files in the directory
+            for root, dirs, files in os.walk(top = backups[0], topdown = False):
+                # remove all files
+                for file in files:
+                    os.remove(os.path.join(root, file))
+                # remove all dirs
+                for folder in dirs:
+                    os.rmdir(os.path.join(root, folder))
+            # remove the oldest file (first in the list)
+            os.rmdir(backups[0])
+            backups.pop(0)
+        # once here, there is room for another backup in past backups
 
 # pastBackup moves the latest backup to the past folder
 def pastBackup():
@@ -148,34 +160,30 @@ def pastBackup():
     Takes the latest backup of the config files and moves it into its own folder
     in the past backups folder. Clears the latest backup from the latest folder.
     """
-    try:
-        # save the backups directories
-        latest_dir = os.path.join(sys_env_dir, "bin", "backups", "latest")
-        # save the timestamp (used to name the past backup folder)
-        File = open(os.path.join(latest_dir, "KIM_interface_configuration.json"), 'r')
-        # save the file text
-        text = File.read()
-        # close the file
-        File.close()
-        # convert to JSON
-        text = loads(text)
-        # get the timestamp
-        timestamp = text['timestamp']
-        # remove milliseconds from timestamp
-        timestamp = (timestamp.split('.'))[0]
-        # remove invalid directory characters
-        timestamp = timestamp.replace(':', '.')
-        # save the past backup folder dir
-        past_dir = os.path.join(sys_env_dir, "bin", "backups", "past", timestamp)
-        # check the past backups folder
-        checkBackupCount()
+    # save the backups directories
+    latest_dir = os.path.join(sys_env_dir, "bin", "backups", "latest")
+    # save the timestamp (used to name the past backup folder)
+    File = open(os.path.join(latest_dir, "KIM_interface_configuration.json"), 'r')
+    # save the file text
+    text = File.read()
+    # close the file
+    File.close()
+    # convert to JSON
+    text = loads(text)
+    # get the timestamp
+    timestamp = text['timestamp']
+    # remove milliseconds from timestamp
+    timestamp = (timestamp.split('.'))[0]
+    # remove invalid directory characters
+    timestamp = timestamp.replace(':', '.')
+    # save the past backup folder dir
+    past_dir = os.path.join(sys_env_dir, "bin", "backups", "past", timestamp)
+    # check the past backups folder
+    checkBackupCount()
+    # if the timestamped config has not already been backed-up
+    if not os.path.isdir(past_dir):
         # copy the config tree from the latest to past backup
         copytree(latest_dir, past_dir)
-    except Exception as ex:
-        print("Error in pastBackup(): " + str(ex))
-        # exceptions most likely caused by a duplicate backup timestamp
-        # nothing needs to happen here, as the past backup already exists
-        pass
     # clear all files from the latest directory (needs to happen either way)
     for root, dirs, files in os.walk(top = latest_dir, topdown = False):
         # for each file in the tree
@@ -679,7 +687,7 @@ def validateEditConfigInput(Model, Machine, Config, new_id, prior_id, checks, in
                 # add it to the list
                 map_list.append(
                     {"item":Config['configuration'][index]['item'], "sheet":sheet, 
-                    "sheet":int(sheet), "cluster":int(cluster), "value":""})
+                    "sheet":int(sheet), "cluster":int(cluster), "type":"string", "value":""})
         # increment the model_info_loop
         index += 1
     # if here, the Config information can make a Config Object
@@ -1090,7 +1098,8 @@ def closeProgram(sender, app_data, user_data):
     # create a new backup
     createConfigBackup()
     # exit the program
-    raise SystemExit
+    dpg.destroy_context()
+    raise SystemExit(1)
 
 # deletes the passed item
 def deleteItem(sender, app_data, user_data):
@@ -1694,6 +1703,8 @@ def duplicateConfig(sender, app_data, user_data):
     Machine = user_data[2]
     # get the config to duplicate
     DuplicatedConfig = user_data[3]
+    # clear the duplicateConfigPopup window
+    clearWindow("duplicateConfigPopup")
     # create a popup to get the duplicate config's ID
     Popup = dpg.window(tag = "duplicateConfigPopup", popup = True, no_open_over_existing_popup = False,
         width = 400, height = 250, no_move = True, no_close = True, no_collapse = True, no_resize = True,
@@ -1705,7 +1716,8 @@ def duplicateConfig(sender, app_data, user_data):
         dpg.add_text("Duplicating Mapping Configuration ID #" + str(DuplicatedConfig['id'])
             + "\nPlease enter the duplicate Configuration's ID:")
         # add an input box
-        IDInput = dpg.add_input_text(hint = "ID #...", width = 300)
+        IDInput = dpg.add_input_text(hint = "ID #...", width = 300, 
+            default_value = DuplicatedConfig['id'])
         # add an add field button
         dpg.add_button(label = "Duplicate Configuration", pos = [5, 100], 
             callback = commitConfigDuplicate, user_data = 
@@ -1816,6 +1828,8 @@ def selectConfig(sender, app_data, user_data):
         else:
             # mapping selection
             dpg.add_text("Select a Mapping Configuration:", pos = [25, 32])
+            # sort the mapping configuration list
+            list_items = sorted(list_items, reverse = False)
             # mapping configuration listbox
             ConfigListbox = dpg.add_listbox(items = list_items, width = 300, pos = [25, 57], 
                 num_items = 20, default_value = list_items[0])
@@ -1910,6 +1924,8 @@ def commitMachineEdits(sender, app_data, user_data):
             for index in removed_items:
                 # remove that item by index
                 Config['configuration'].pop(index)
+        # update the machine's name
+        machine_file['machine'] = EditedMachine['name']
         # timestamp the file
         machine_file = timestamp(machine_file, str(EditedMachine['name']) + ".json", 
             "Edit Machine: " + str(EditedMachine['name']))
@@ -1930,6 +1946,16 @@ def commitMachineEdits(sender, app_data, user_data):
         machine_index = machines.index(Machine)
         # update that machine's measurement list
         Interface_Config_File['machines'][machine_index] = EditedMachine
+        # get a list of Models
+        models = getModels()
+        # find the Model's index in the Model list
+        model_index = models.index(Model)
+        # find the Machine index in the Model's Machine list
+        machine_index = Model['model_machines'].index(Machine['name'])
+        # update the Machine's name in the Model's Machines list
+        Model['model_machines'][machine_index] = EditedMachine['name']
+        # update the Model in the config file
+        Interface_Config_File['models'][model_index] = Model
         # overwrite the KIM Interface config file
         overwriteConfigFile(Interface_Config_File, "Edit Machine: " + str(EditedMachine['name']))
         # set the machine file directory with the old Machine name
@@ -2466,6 +2492,8 @@ def selectMachine(sender, app_data, user_data):
         else:
             # add the machine selection label
             dpg.add_text("Select a Machine:", pos = [5, 32])
+            # sort the mapping configuration list
+            list_items = sorted(list_items, reverse = False)
             # create the machine selection listbox
             MachineListbox = dpg.add_listbox(items = list_items, width = 450, 
                 pos = [25, 57], num_items = 20, default_value = list_items[0])
@@ -3127,6 +3155,8 @@ def selectModel(sender, app_data, user_data):
             dpg.add_text("No Models Configured", pos = [25, 75])
         # there are models to list
         else:
+            # sort the mapping configuration list
+            list_items = sorted(list_items, reverse = False)
             # create the model selection listbox
             ModelListbox = dpg.add_listbox(items = list_items, width = 350, pos = [25, 75], 
                 num_items = 20, default_value = list_items[0])
@@ -3181,7 +3211,7 @@ def generateURL(sender, app_data, user_data):
     # save mapping_config
     mapping_config = dpg.get_value("mappingConfigText")
     # build the URL call string
-    url = "http://10.1.30.90:3000/api/getvalue/KIM_Interface?"
+    url = "http://10.1.30.90:3000/api/v1/getvalue/KIM_Interface?"
     # check that a Machine is selected
     if not machine_name == "Default":
         # add the machine_name to the url, replacing spaces with underscore for URL format
@@ -3230,8 +3260,12 @@ def updateMappingConfigurationList(sender, app_data, user_data):
     """
     # get the ConfigurationListbox object
     ConfigListbox = user_data[0]
+    # get the config list
+    config_list = user_data[1]
+    # sort the config list
+    config_list = sorted(config_list, reverse = False)
     # update the list
-    dpg.configure_item(ConfigListbox, items = user_data[1])
+    dpg.configure_item(ConfigListbox, items = config_list)
 
 # updates the selected machine text
 def updateSelectedMachine(sender, app_data, user_data):
@@ -3402,6 +3436,8 @@ def informationWindow(sender, app_data, user_data):
             machine_names.append(machine['name'])
         # add Machine selection label
         dpg.add_text("Select a Machine:", pos = [400, 150])
+        # sort the mapping configuration list
+        machine_names = sorted(machine_names, reverse = False)
         # add a listbox to select Machines from
         MachineListbox = dpg.add_listbox(items = machine_names, callback = updateSelectedMachine,
             pos = [400, 175], default_value = None, width = 250, num_items = 20)
