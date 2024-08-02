@@ -2,6 +2,28 @@
 
 All notable changes to this project will be documented in this file.
 
+### KIM Interface v1.2.1
+##### What's Changed in `v1.2.1`
+**Bug Fixes**
+* Attempting to duplicate a configuration twice in one session of the application 
+would cause a blank popup screen and a program freeze. This has been addressed in #6.
+* Attempting to save and exit the program (buttons on main menu and in navigation menu)
+would cause a program freeze. This has been addressed in #7.
+* The `Generate URL` window would generate `URLs` ommitting the `v1/` segment. This was
+a fatal issue with i-Reporter integration. It has been addressed in #10.
+* Editing a Mapping Configuration would drop the `type` keyword in its JSON data.
+This was a fatal issue with i-Reporter integration. It has been addressed in #11.
+* An internal error in the `Interface` component was causing crashes in i-Reporter
+forms. This has been addressed internally and was not committed as the `Interface`
+component is secure.
+* Editing a Machine's name would not cascade into all of the individual congiguration
+files. This has been addressed in #13.
+**QOL Changes**
+* Listboxes now sort their contents alphabetically (#8).
+* When duplicating a Mapping Configuration, the previous Configuration's ID 
+automatically populates into the Duplicate Configuration's ID field when prompting (#9).
+* KIM Interface v1.2.1 by @masonritchason in https://github.com/masonritchason/KIM-Interface-Manager/pull/15
+
 ### KIM Interface v1.2.0
 ##### What's Changed in `v1.2.0`
 * `CHANGELOG.md` view added in startup window.
