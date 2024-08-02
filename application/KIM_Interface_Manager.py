@@ -1924,6 +1924,8 @@ def commitMachineEdits(sender, app_data, user_data):
             for index in removed_items:
                 # remove that item by index
                 Config['configuration'].pop(index)
+        # update the machine's name
+        machine_file['machine'] = EditedMachine['name']
         # timestamp the file
         machine_file = timestamp(machine_file, str(EditedMachine['name']) + ".json", 
             "Edit Machine: " + str(EditedMachine['name']))
@@ -1944,6 +1946,16 @@ def commitMachineEdits(sender, app_data, user_data):
         machine_index = machines.index(Machine)
         # update that machine's measurement list
         Interface_Config_File['machines'][machine_index] = EditedMachine
+        # get a list of Models
+        models = getModels()
+        # find the Model's index in the Model list
+        model_index = models.index(Model)
+        # find the Machine index in the Model's Machine list
+        machine_index = Model['model_machines'].index(Machine['name'])
+        # update the Machine's name in the Model's Machines list
+        Model['model_machines'][machine_index] = EditedMachine['name']
+        # update the Model in the config file
+        Interface_Config_File['models'][model_index] = Model
         # overwrite the KIM Interface config file
         overwriteConfigFile(Interface_Config_File, "Edit Machine: " + str(EditedMachine['name']))
         # set the machine file directory with the old Machine name
