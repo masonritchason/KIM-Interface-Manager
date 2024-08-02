@@ -3192,7 +3192,7 @@ def generateURL(sender, app_data, user_data):
     # save mapping_config
     mapping_config = dpg.get_value("mappingConfigText")
     # build the URL call string
-    url = "http://10.1.30.90:3000/api/getvalue/KIM_Interface?"
+    url = "http://10.1.30.90:3000/api/v1/getvalue/KIM_Interface?"
     # check that a Machine is selected
     if not machine_name == "Default":
         # add the machine_name to the url, replacing spaces with underscore for URL format
