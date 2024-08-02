@@ -1827,6 +1827,8 @@ def selectConfig(sender, app_data, user_data):
         else:
             # mapping selection
             dpg.add_text("Select a Mapping Configuration:", pos = [25, 32])
+            # sort the mapping configuration list
+            list_items = sorted(list_items, reverse = False)
             # mapping configuration listbox
             ConfigListbox = dpg.add_listbox(items = list_items, width = 300, pos = [25, 57], 
                 num_items = 20, default_value = list_items[0])
@@ -2477,6 +2479,8 @@ def selectMachine(sender, app_data, user_data):
         else:
             # add the machine selection label
             dpg.add_text("Select a Machine:", pos = [5, 32])
+            # sort the mapping configuration list
+            list_items = sorted(list_items, reverse = False)
             # create the machine selection listbox
             MachineListbox = dpg.add_listbox(items = list_items, width = 450, 
                 pos = [25, 57], num_items = 20, default_value = list_items[0])
@@ -3138,6 +3142,8 @@ def selectModel(sender, app_data, user_data):
             dpg.add_text("No Models Configured", pos = [25, 75])
         # there are models to list
         else:
+            # sort the mapping configuration list
+            list_items = sorted(list_items, reverse = False)
             # create the model selection listbox
             ModelListbox = dpg.add_listbox(items = list_items, width = 350, pos = [25, 75], 
                 num_items = 20, default_value = list_items[0])
@@ -3241,8 +3247,12 @@ def updateMappingConfigurationList(sender, app_data, user_data):
     """
     # get the ConfigurationListbox object
     ConfigListbox = user_data[0]
+    # get the config list
+    config_list = user_data[1]
+    # sort the config list
+    config_list = sorted(config_list, reverse = False)
     # update the list
-    dpg.configure_item(ConfigListbox, items = user_data[1])
+    dpg.configure_item(ConfigListbox, items = config_list)
 
 # updates the selected machine text
 def updateSelectedMachine(sender, app_data, user_data):
@@ -3413,6 +3423,8 @@ def informationWindow(sender, app_data, user_data):
             machine_names.append(machine['name'])
         # add Machine selection label
         dpg.add_text("Select a Machine:", pos = [400, 150])
+        # sort the mapping configuration list
+        machine_names = sorted(machine_names, reverse = False)
         # add a listbox to select Machines from
         MachineListbox = dpg.add_listbox(items = machine_names, callback = updateSelectedMachine,
             pos = [400, 175], default_value = None, width = 250, num_items = 20)
