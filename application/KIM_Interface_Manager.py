@@ -1716,7 +1716,8 @@ def duplicateConfig(sender, app_data, user_data):
         dpg.add_text("Duplicating Mapping Configuration ID #" + str(DuplicatedConfig['id'])
             + "\nPlease enter the duplicate Configuration's ID:")
         # add an input box
-        IDInput = dpg.add_input_text(hint = "ID #...", width = 300)
+        IDInput = dpg.add_input_text(hint = "ID #...", width = 300, 
+            default_value = DuplicatedConfig['id'])
         # add an add field button
         dpg.add_button(label = "Duplicate Configuration", pos = [5, 100], 
             callback = commitConfigDuplicate, user_data = 
