@@ -128,18 +128,30 @@ def checkBackupCount():
     """
     # save the backups directory
     past_backups_dir = os.path.join(sys_env_dir, "bin", "backups", "past")
-    # get the files in the past backups folder
-    files = os.listdir(past_backups_dir)
     # check the number of folders in the past backups folder
-    while len(files) >= 25:
-        # there are ten folders in the past backups folder; remove oldest
-        files = sorted(files, key = os.path.getctime)
-        # remove the oldest file (first in the list)
-        os.remove(files[0])
-        files.pop(0)
-        # rescan the size of the folder
-        files = os.listdir(past_backups_dir)
-    # once here, there is room for another backup in past backups
+    while len(os.listdir(past_backups_dir)) >= 25:
+        # scan the size of the folder
+        backups = os.listdir(past_backups_dir)
+        # does the directory need trimmed?
+        if len(backups) >= 25:
+            # add the dir root to each file name
+            for i in range(len(backups)):
+                # add the dir root
+                backups[i] = os.path.join(past_backups_dir, backups[i])
+            # there are 25+ folders in the past backups folder; remove oldest
+            backups = sorted(backups, key = os.path.getctime)
+            # clear the files in the directory
+            for root, dirs, files in os.walk(top = backups[0], topdown = False):
+                # remove all files
+                for file in files:
+                    os.remove(os.path.join(root, file))
+                # remove all dirs
+                for folder in dirs:
+                    os.rmdir(os.path.join(root, folder))
+            # remove the oldest file (first in the list)
+            os.rmdir(backups[0])
+            backups.pop(0)
+        # once here, there is room for another backup in past backups
 
 # pastBackup moves the latest backup to the past folder
 def pastBackup():
@@ -148,34 +160,30 @@ def pastBackup():
     Takes the latest backup of the config files and moves it into its own folder
     in the past backups folder. Clears the latest backup from the latest folder.
     """
-    try:
-        # save the backups directories
-        latest_dir = os.path.join(sys_env_dir, "bin", "backups", "latest")
-        # save the timestamp (used to name the past backup folder)
-        File = open(os.path.join(latest_dir, "KIM_interface_configuration.json"), 'r')
-        # save the file text
-        text = File.read()
-        # close the file
-        File.close()
-        # convert to JSON
-        text = loads(text)
-        # get the timestamp
-        timestamp = text['timestamp']
-        # remove milliseconds from timestamp
-        timestamp = (timestamp.split('.'))[0]
-        # remove invalid directory characters
-        timestamp = timestamp.replace(':', '.')
-        # save the past backup folder dir
-        past_dir = os.path.join(sys_env_dir, "bin", "backups", "past", timestamp)
-        # check the past backups folder
-        checkBackupCount()
+    # save the backups directories
+    latest_dir = os.path.join(sys_env_dir, "bin", "backups", "latest")
+    # save the timestamp (used to name the past backup folder)
+    File = open(os.path.join(latest_dir, "KIM_interface_configuration.json"), 'r')
+    # save the file text
+    text = File.read()
+    # close the file
+    File.close()
+    # convert to JSON
+    text = loads(text)
+    # get the timestamp
+    timestamp = text['timestamp']
+    # remove milliseconds from timestamp
+    timestamp = (timestamp.split('.'))[0]
+    # remove invalid directory characters
+    timestamp = timestamp.replace(':', '.')
+    # save the past backup folder dir
+    past_dir = os.path.join(sys_env_dir, "bin", "backups", "past", timestamp)
+    # check the past backups folder
+    checkBackupCount()
+    # if the timestamped config has not already been backed-up
+    if not os.path.isdir(past_dir):
         # copy the config tree from the latest to past backup
         copytree(latest_dir, past_dir)
-    except Exception as ex:
-        print("Error in pastBackup(): " + str(ex))
-        # exceptions most likely caused by a duplicate backup timestamp
-        # nothing needs to happen here, as the past backup already exists
-        pass
     # clear all files from the latest directory (needs to happen either way)
     for root, dirs, files in os.walk(top = latest_dir, topdown = False):
         # for each file in the tree
@@ -1090,7 +1098,8 @@ def closeProgram(sender, app_data, user_data):
     # create a new backup
     createConfigBackup()
     # exit the program
-    raise SystemExit
+    dpg.destroy_context()
+    raise SystemExit(1)
 
 # deletes the passed item
 def deleteItem(sender, app_data, user_data):
