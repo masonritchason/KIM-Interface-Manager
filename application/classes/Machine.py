@@ -1,4 +1,6 @@
 
+"""Machines are virtualizations of specific Keyence IM Machines involved in production processes."""
+
 from json import dumps
 
 # KIM Interface Machine Class
@@ -8,6 +10,10 @@ class Machine:
         self.name = name
         self.measurements = measurements
         self.mapping_configurations = mapping_configurations 
+
+    # default print
+    def __str__(self):
+        return f"Machine {self.name}"
 
     def toJSON(name, measurements, mapping_configurations):
         """Writes the class to a JSON object that can be stored in configuration files."""

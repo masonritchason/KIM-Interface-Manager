@@ -1,4 +1,6 @@
 
+"""Models are virtualizations of specific production processes."""
+
 from json import dumps
 
 # KIM Interface Model Class
@@ -8,6 +10,10 @@ class Model:
         self.name = name
         self.base_information = base_information
         self.machines = machines
+
+    # default print
+    def __str__(self):
+        return f"Model {self.name}"
 
     def toJSON(name, base_information, machines):
         """Writes the class to a JSON object that can be stored in configuration files."""

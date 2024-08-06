@@ -161,13 +161,70 @@ def overwriteConfigFile(new_config_object, action):
     # close the file
     File.close()
 
-# get machines from the KIM Interface config file
+# get Configs from the KIM Interface config file
+def getConfigs(machine):
+    """getConfigs(machine)
+    
+    Returns the list of Mapping Configurations currently in the passed Machine.
+
+    machine: Machine Object; the Machine to return its Configs.
+
+    -> [Config]
+    """
+    # create a list to hold the Config objects
+    configs = []
+    # add Configs from each Machine's Config list in the machines list 
+    for i in range(len(machine.mapping_configurations)):
+        # save the current Config
+        curr = machine.mapping_configurations[i]
+        # create a Config object
+        TempConfig = MappingConfiguration.MappingConfiguration(curr['id'], curr['mappings'])
+        # append that object to the list
+        configs.append(TempConfig)
+    # return configs list
+    return configs
+
+# get Machines from the KIM Interface config file
+def getMachines(model):
+    """getMachines(model)
+    
+    Returns the list of Machines currently in the passed Model.
+
+    model: Model Object; the Model object to return its Machines.
+
+    -> [Machine]
+    """
+    # create a list to hold the Machine objects
+    machines = []
+    # add Machines from the passed Model's Machine list 
+    for i in range(len(model.machines)):
+        # save the current Machine
+        curr = model.machines[i]
+        # create a Machine object
+        TempMachine = Machine.Machine(curr['name'], curr['measurements'], curr['mapping_configurations'])
+        # fix machine measurement character issues
+        for j in range(len(TempMachine.measurements)):
+            # save current measurement
+            curr = TempMachine.measurements[j]
+            # replace characters 
+            curr = curr.replace('Ã˜', 'Ø')
+            curr = curr.replace('Â±', '±')
+            # save the changed measurement
+            TempMachine.measurements[j] = curr
+        # add the Machine's Configs to its Configs attribute
+        TempMachine.mapping_configurations = getConfigs(TempMachine)
+        # append that object to the list
+        machines.append(TempMachine)
+    # return machines list
+    return machines
+
+# get Models from the KIM Interface config file
 def getModels():
     """getModels()
     
     Returns the list of Models currently in the KIM Interface config file.
 
-    -> [Dict:Model]
+    -> [Model]
     """
     # get the KIM Interface config
     Interface_Config_File = openConfigFile()
@@ -178,66 +235,13 @@ def getModels():
         # save current Model
         curr = models[i]
         # create a new Model object
-        TempModel = Model(curr['name'], curr['base_information'], curr['machines'])
+        TempModel = Model.Model(curr['name'], curr['base_information'], curr['machines'])
+        # add the Model's Machines to its Machines attribute
+        TempModel.machines = getMachines(TempModel)
         # overwrite the Model in the models list
         models[i] = TempModel
     # return models list
     return models
-
-# get machines from the KIM Interface config file
-def getMachines():
-    """getMachines()
-    
-    Returns the list of Machines currently in the KIM Interface config file.
-
-    -> [Dict:Machine]
-    """
-    # get the KIM Interface config
-    Interface_Config_File = openConfigFile()
-    # set machines
-    machines = Interface_Config_File['machines']
-    # convert to a list of Machine objects
-    for i in range(len(machines)):
-        # save current Machine
-        curr = machines[i]
-        # create a new Machine object
-        TempMachine = Machine(curr['name'], curr['measurements'], curr['mapping_configurations'])
-        # fix machine measurement character issues
-        for i in range(len(TempMachine.measurements)):
-            # save current measurement
-            curr = TempMachine.measurements[i]
-            # replace characters 
-            curr = curr.replace('Ã˜', 'Ø')
-            curr = curr.replace('Â±', '±')
-            # save the changed measurement
-            TempMachine.measurements[i] = curr
-        # overwrite the Machine in the machines list
-        machines[i] = TempMachine
-    # return machines list
-    return machines
-
-# get configurations from the KIM Interface config file
-def getConfigs():
-    """getConfigs()
-    
-    Returns the list of Mapping Configurations currently in the KIM Interface config file.
-
-    -> [Dict:Config]
-    """
-    # get the KIM Interface config
-    Interface_Config_File = openConfigFile()
-    # set configs
-    configs = Interface_Config_File['mapping_configurations']
-    # convert to a list of Config objects
-    for i in range(len(configs)):
-        # save current Config
-        curr = configs[i]
-        # create a new Config object
-        TempConfig = MappingConfiguration(curr['id'], curr['mappings'])
-        # overwrite the Config in the configs list
-        configs[i] = TempConfig
-    # return configs list
-    return configs
 
 
 ### Backup Management
@@ -408,7 +412,7 @@ def showWarningPopup(warning_message):
             callback = deleteItem, user_data = ["warningPopup"])
 
 
-    
+#### POSSIBLY OBSOLETE AFTER OOP OVERHAUL
 # # open a specific machine mapping file
 # def openMachineConfiguration(machine_name):
 #     """openMachineConfiguration
