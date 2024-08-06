@@ -18,6 +18,7 @@ from re import compile
 from shutil import copytree
 from datetime import datetime
 from webbrowser import open as web
+from classes import Model, Machine, MappingConfiguration
 
 
 ### Global Definition Segmemt
@@ -28,8 +29,7 @@ sys_env_dir = os.path.abspath(os.path.join(os.getcwd()))
 # detect user signature
 user = os.getenv('username')
 
-# get the manager configuration
-# open the KIM Interface Manager configuration file
+# get the manager configuration; open the KIM Interface Manager configuration file
 File = open(os.path.join(sys_env_dir, "KIM_interface_manager_config.json"), 'r')
 # read it
 Manager_Config_File = File.read()
@@ -119,6 +119,128 @@ def timestamp(cfg, filename, action):
     # return the new config item (may not be used if a filepath was passed)
     return cfg
 
+
+### Config File Management
+# openConfigFile reads and returns the KIM Interface configuration
+def openConfigFile():
+    """openConfigFile()
+
+    Retrieves the Dict Object of the current KIM Interface configuration file.
+
+    -> Dict:Interface_Config_File
+    """
+    # open the KIM Interface config file
+    File = open(os.path.join(sys_env_dir, "config", "KIM_interface_configuration.json"), 'r')
+    # read the file
+    Interface_Config_File = File.read()
+    # convert from JSON to Py Dict
+    Interface_Config_File = loads(Interface_Config_File)
+    # close
+    File.close()
+    # return the KIM Interface config object
+    return Interface_Config_File
+
+# overwrites the KIM Interface config file with a new config object
+def overwriteConfigFile(new_config_object, action):
+    """overwriteConfigFile(new_config_object, action)
+    
+    new_config_object: Dict:Config; the edited Config File object that needs to be
+        written over the existing KIM Interface configuration file.
+    action: str; a plaintext description of the action performed.
+
+    Overwrites the existing KIM Interface configuration JSON file with an edited version.
+    """
+    # update the new config object's timestamp
+    new_config_object = timestamp(new_config_object, "KIM_interface_configuration.json", action)
+    # convert the new config to json
+    Interface_Config_File = dumps(new_config_object, indent = 4)
+    # open the KIM Interface config file
+    File = open(os.path.join(sys_env_dir, "config", "KIM_interface_configuration.json"), 'w')
+    # overwrite the KIM Interface config file
+    File.write(Interface_Config_File)
+    # close the file
+    File.close()
+
+# get machines from the KIM Interface config file
+def getModels():
+    """getModels()
+    
+    Returns the list of Models currently in the KIM Interface config file.
+
+    -> [Dict:Model]
+    """
+    # get the KIM Interface config
+    Interface_Config_File = openConfigFile()
+    # set models
+    models = Interface_Config_File['models']
+    # convert to a list of Model objects
+    for i in range(len(models)):
+        # save current Model
+        curr = models[i]
+        # create a new Model object
+        TempModel = Model(curr['name'], curr['base_information'], curr['machines'])
+        # overwrite the Model in the models list
+        models[i] = TempModel
+    # return models list
+    return models
+
+# get machines from the KIM Interface config file
+def getMachines():
+    """getMachines()
+    
+    Returns the list of Machines currently in the KIM Interface config file.
+
+    -> [Dict:Machine]
+    """
+    # get the KIM Interface config
+    Interface_Config_File = openConfigFile()
+    # set machines
+    machines = Interface_Config_File['machines']
+    # convert to a list of Machine objects
+    for i in range(len(machines)):
+        # save current Machine
+        curr = machines[i]
+        # create a new Machine object
+        TempMachine = Machine(curr['name'], curr['measurements'], curr['mapping_configurations'])
+        # fix machine measurement character issues
+        for i in range(len(TempMachine.measurements)):
+            # save current measurement
+            curr = TempMachine.measurements[i]
+            # replace characters 
+            curr = curr.replace('Ã˜', 'Ø')
+            curr = curr.replace('Â±', '±')
+            # save the changed measurement
+            TempMachine.measurements[i] = curr
+        # overwrite the Machine in the machines list
+        machines[i] = TempMachine
+    # return machines list
+    return machines
+
+# get configurations from the KIM Interface config file
+def getConfigs():
+    """getConfigs()
+    
+    Returns the list of Mapping Configurations currently in the KIM Interface config file.
+
+    -> [Dict:Config]
+    """
+    # get the KIM Interface config
+    Interface_Config_File = openConfigFile()
+    # set configs
+    configs = Interface_Config_File['mapping_configurations']
+    # convert to a list of Config objects
+    for i in range(len(configs)):
+        # save current Config
+        curr = configs[i]
+        # create a new Config object
+        TempConfig = MappingConfiguration(curr['id'], curr['mappings'])
+        # overwrite the Config in the configs list
+        configs[i] = TempConfig
+    # return configs list
+    return configs
+
+
+### Backup Management
 # checkBackupCount maintains a limit of 25 backups in the system
 def checkBackupCount():
     """checkBackupCount():
@@ -214,6 +336,8 @@ def createConfigBackup():
     # copy the config tree from the config to backup/latest
     copytree(source, dest)
 
+
+### DPG Window Management
 # clears the passed window alias for reuse
 def clearWindow(window):
     """clearWindow(window)
@@ -258,247 +382,197 @@ def clearWindowRegistry(exclusions = []):
         dpg.hide_item("startupWindow")
         dpg.hide_item("changelogWindow")
 
-# openConfigFile reads and returns the KIM Interface configuration
-def openConfigFile():
-    """openConfigFile()
-
-    Retrieves the Dict Object of the current KIM Interface configuration file.
-
-    -> Dict:Interface_Config_File
-    """
-    # open the KIM Interface config file
-    File = open(os.path.join(sys_env_dir, "config", "KIM_interface_configuration.json"), 'r')
-    # read the file
-    Interface_Config_File = File.read()
-    # convert from JSON to Py Dict
-    Interface_Config_File = loads(Interface_Config_File)
-    # close
-    File.close()
-    # return the KIM Interface config object
-    return Interface_Config_File
-
-# overwrites the KIM Interface config file with a new config object
-def overwriteConfigFile(new_config_object, action):
-    """overwriteConfigFile(new_config_object, action)
+# shows a warning popup with a custom message
+def showWarningPopup(warning_message):
+    """showWarningPopup(warning_message)
     
-    new_config_object: Dict:Config; the edited Config File object that needs to be
-        written over the existing KIM Interface configuration file.
-    action: str; a plaintext description of the action performed.
+    warning_message: str; the message to be displayed to the user.
 
-    Overwrites the existing KIM Interface configuration JSON file with an edited version.
+    Shows an 'error' type warning popup that tells the user something went wrong.
     """
-    # update the new config object's timestamp
-    new_config_object = timestamp(new_config_object, "KIM_interface_configuration.json", action)
-    # convert the new config to json
-    Interface_Config_File = dumps(new_config_object, indent = 4)
-    # open the KIM Interface config file
-    File = open(os.path.join(sys_env_dir, "config", "KIM_interface_configuration.json"), 'w')
-    # overwrite the KIM Interface config file
-    File.write(Interface_Config_File)
-    # close the file
-    File.close()
+    # clear the warning popup
+    clearWindow("warningPopup")
+    # create the popup
+    WarningPopup = dpg.window(tag = "warningPopup", popup = True, no_open_over_existing_popup = False,
+        width = 400, height = 250, no_move = True, no_close = True, no_collapse = True, no_resize = True,
+        pos = [(dpg.get_viewport_client_width() / 2) - 200, (dpg.get_viewport_client_height() / 2) - 125],
+        modal = True)
+    # add items to the popup
+    with WarningPopup:
+        # add a title label
+        dpg.add_text("Warning:", color = [255, 150, 75])
+        dpg.add_text(warning_message)
+        dpg.add_text("Please resolve these issues and try again!", color = [255, 150, 75])
+        # add an Okay button
+        dpg.add_button(label = "Okay!", width = 150, height = 25, 
+            callback = deleteItem, user_data = ["warningPopup"])
 
-# get machines from the KIM Interface config file
-def getModels():
-    """getModels()
+
     
-    Returns the list of Models currently in the KIM Interface config file.
-
-    -> [Dict:Model]
-    """
-    # get the KIM Interface config
-    Interface_Config_File = openConfigFile()
-    # set models
-    models = Interface_Config_File['models']
-    # return models
-    return models
-
-# get machines from the KIM Interface config file
-def getMachines():
-    """getMachines()
+# # open a specific machine mapping file
+# def openMachineConfiguration(machine_name):
+#     """openMachineConfiguration
     
-    Returns the list of Machines currently in the KIM Interface config file.
-
-    -> [Dict:Machine]
-    """
-    # get the KIM Interface config
-    Interface_Config_File = openConfigFile()
-    # set machines
-    machines = Interface_Config_File['machines']
-    # fix bad characters
-    for machine in machines:
-        # fix machine measurement character issues
-        for i in range(len(machine['measurements'])):
-            # replace characters 
-            machine['measurements'][i] = machine['measurements'][i].replace('Ã˜', 'Ø')
-            machine['measurements'][i] = machine['measurements'][i].replace('Â±', '±')
-    # return machines
-    return machines
-
-# open a specific machine mapping file
-def openMachineConfiguration(machine_name):
-    """openMachineConfiguration
+#     machine_name: str; name of the Machine object.
     
-    machine_name: str; name of the Machine object.
+#     Opens the passed Machine's configuration .json file.
+
+#     -> Dict:Machine_file
+#     """
+#     # create path to mapping config files
+#     path = os.path.join(sys_env_dir, "config", "mapping configurations")
+#     # add route to model folder
+#     path = os.path.join(path, str(machine_name[:3]))
+#     # add route to machine .json file
+#     path = os.path.join(path, str(machine_name) + ".json")
+#     # open the file
+#     File = open(os.path.abspath(path), 'r')
+#     # read the file
+#     Machine_file = File.read()
+#     # close
+#     File.close()
+#     # convert from JSON to Py Dict
+#     Machine_file = loads(Machine_file)
+#     # return the machine file
+#     return Machine_file
+
+# # gets a Model in the KIM Interface config by a passed dpg id
+# def getModelObject(ModelItem):
+#     """getModelObject(ModelItem)
     
-    Opens the passed Machine's configuration .json file.
+#     ModelItem: Dict:Model; [int, str]:DPG Item; str:ModelName; 
+#         the key to search Models by.
 
-    -> Dict:Machine_file
-    """
-    # create path to mapping config files
-    path = os.path.join(sys_env_dir, "config", "mapping configurations")
-    # add route to model folder
-    path = os.path.join(path, str(machine_name[:3]))
-    # add route to machine .json file
-    path = os.path.join(path, str(machine_name) + ".json")
-    # open the file
-    File = open(os.path.abspath(path), 'r')
-    # read the file
-    Machine_file = File.read()
-    # close
-    File.close()
-    # convert from JSON to Py Dict
-    Machine_file = loads(Machine_file)
-    # return the machine file
-    return Machine_file
+#     Returns a Model Object from the KIM Interface config files.
 
-# gets a Model in the KIM Interface config by a passed dpg id
-def getModelObject(ModelItem):
-    """getModelObject(ModelItem)
+#     -> [Dict:Model]
+#     """
+#     # first see if the passed item is a dict (Model Object)
+#     if type(ModelItem) == dict:
+#         # return the object
+#         return ModelItem
+#     # not a Model object, test as DPG
+#     else:
+#         try:
+#             # get the passed item's value
+#             temp = dpg.get_value(ModelItem)
+#             # if the item was a valid DPG item, it will return some value
+#             if not (temp is None):
+#                 # set the model name
+#                 Model = dpg.get_value(ModelItem)
+#             # otherwise assume the input was actually a Model name (string)
+#             else:
+#                 # assume the input was actually a Model name (str)
+#                 Model = ModelItem
+#         # there was an issue getting DPG value
+#         except Exception as ex:
+#             # warn in console
+#             print("Error: " + str(ex) + "; Defaulting to Model Object as: " + str(Model))
+#         # get the full Models list from KIM Interface config
+#     models = getModels()
+#     # find the Model in the list
+#     for curr_model in models:
+#         # if the names match
+#         if curr_model['model_name'] == Model:
+#             # set the return Model as the matching Model
+#             Model = curr_model
+#             break
+#     # return the selected Model
+#     return Model
+
+# # gets a machine in the KIM Interface config by a passed dpg id
+# def getMachineObject(MachineItem):
+#     """getMachineObject(MachineItem)
     
-    ModelItem: Dict:Model; [int, str]:DPG Item; str:ModelName; 
-        the key to search Models by.
+#     MachineItem: Dict:Machine; [int, str]:DPG Item; str:MachineName; 
+#         the key to search Machines by.
 
-    Returns a Model Object from the KIM Interface config files.
+#     Returns a Machine Object from the KIM Interface config files.
 
-    -> [Dict:Model]
-    """
-    # first see if the passed item is a dict (Model Object)
-    if type(ModelItem) == dict:
-        # return the object
-        return ModelItem
-    # not a Model object, test as DPG
-    else:
-        try:
-            # get the passed item's value
-            temp = dpg.get_value(ModelItem)
-            # if the item was a valid DPG item, it will return some value
-            if not (temp is None):
-                # set the model name
-                Model = dpg.get_value(ModelItem)
-            # otherwise assume the input was actually a Model name (string)
-            else:
-                # assume the input was actually a Model name (str)
-                Model = ModelItem
-        # there was an issue getting DPG value
-        except Exception as ex:
-            # warn in console
-            print("Error: " + str(ex) + "; Defaulting to Model Object as: " + str(Model))
-        # get the full Models list from KIM Interface config
-    models = getModels()
-    # find the Model in the list
-    for curr_model in models:
-        # if the names match
-        if curr_model['model_name'] == Model:
-            # set the return Model as the matching Model
-            Model = curr_model
-            break
-    # return the selected Model
-    return Model
+#     -> [Dict:Machine]
+#     """
+#     # first see if the passed item is a dict (Machine Object)
+#     if type(MachineItem) == dict:
+#         # return the object
+#         return MachineItem
+#     # not a Machine object, test as DPG
+#     else:
+#         try:
+#             # get the passed item's value
+#             temp = dpg.get_value(MachineItem)
+#             # if the item was a valid DPG item, it will return some value
+#             if not (temp is None):
+#                 # set the Machine name
+#                 Machine = dpg.get_value(MachineItem)
+#             # otherwise assume the input was actually a Machine name (string)
+#             else:
+#                 # assume the input was actually a Machine name (str)
+#                 Machine = MachineItem
+#         # there was an issue getting DPG value
+#         except Exception as ex:
+#             # assume the input was actually a Machine name (str)
+#             Machine = MachineItem
+#             # warn in console
+#             print("Error: " + str(ex) + "; Defaulting to Machine Object as: " + str(Machine))
+#         # get the full Machines list from KIM Interface config
+#     machines = getMachines()
+#     # find the Machine in the list
+#     for curr_machine in machines:
+#         # if the names match
+#         if curr_machine['name'] == Machine:
+#             # set the return Machine as the matching Machine
+#             Machine = curr_machine
+#             break
+#     # return the selected Machine
+#     return Machine
 
-# gets a machine in the KIM Interface config by a passed dpg id
-def getMachineObject(MachineItem):
-    """getMachineObject(MachineItem)
+# # gets a mapping configuration in the config file by machine and ID
+# def getConfigObject(Machine, ConfigItem):
+#     """getConfigObject(Machine, ConfigItem)
     
-    MachineItem: Dict:Machine; [int, str]:DPG Item; str:MachineName; 
-        the key to search Machines by.
+#     Machine: Dict:Machine; the Machine object owning the Config.
+#     ConfigItem: Dict:Config; [int, str]:DPG Item; str:ConfigName; 
+#         the key to search Configs by.
 
-    Returns a Machine Object from the KIM Interface config files.
+#     Returns a Config Object from the passed machine's configuration file.
 
-    -> [Dict:Machine]
-    """
-    # first see if the passed item is a dict (Machine Object)
-    if type(MachineItem) == dict:
-        # return the object
-        return MachineItem
-    # not a Machine object, test as DPG
-    else:
-        try:
-            # get the passed item's value
-            temp = dpg.get_value(MachineItem)
-            # if the item was a valid DPG item, it will return some value
-            if not (temp is None):
-                # set the Machine name
-                Machine = dpg.get_value(MachineItem)
-            # otherwise assume the input was actually a Machine name (string)
-            else:
-                # assume the input was actually a Machine name (str)
-                Machine = MachineItem
-        # there was an issue getting DPG value
-        except Exception as ex:
-            # assume the input was actually a Machine name (str)
-            Machine = MachineItem
-            # warn in console
-            print("Error: " + str(ex) + "; Defaulting to Machine Object as: " + str(Machine))
-        # get the full Machines list from KIM Interface config
-    machines = getMachines()
-    # find the Machine in the list
-    for curr_machine in machines:
-        # if the names match
-        if curr_machine['name'] == Machine:
-            # set the return Machine as the matching Machine
-            Machine = curr_machine
-            break
-    # return the selected Machine
-    return Machine
-
-# gets a mapping configuration in the config file by machine and ID
-def getConfigObject(Machine, ConfigItem):
-    """getConfigObject(Machine, ConfigItem)
-    
-    Machine: Dict:Machine; the Machine object owning the Config.
-    ConfigItem: Dict:Config; [int, str]:DPG Item; str:ConfigName; 
-        the key to search Configs by.
-
-    Returns a Config Object from the passed machine's configuration file.
-
-    -> [Dict:Config]
-    """
-    # if the input is a Config object
-    if type(ConfigItem) == dict:
-        # set the id as the Config object's id
-        return ConfigItem
-    # id_input is not an object
-    else:
-        # try treating the input as a DPG item
-        try:
-            # get the item value
-            temp = dpg.get_value(ConfigItem)
-            # if the item was a valid DPG item, it will return some value
-            if not (temp is None):
-                # set the Config name
-                Config = dpg.get_value(ConfigItem)
-            # otherwise assume the input was actually a Config ID (string)
-            else:
-                # assume the input was actually a Config ID (str)
-                Config = ConfigItem
-        # failed to get the item value
-        except Exception:
-            # passed ID wasn't a DPG item
-            pass
-            # the id is a string, set the ID to the value 
-            Config = str(ConfigItem)
-    # get the machine file
-    machine_file = openMachineConfiguration(Machine['name'])
-    # for each mapping in the machine's config
-    for curr_map in machine_file['mappings']:
-        # check the IDs against each other
-        if str(curr_map['id']) == Config:
-            # pull that Config object
-            Config = curr_map
-            break
-    # return Config
-    return Config
+#     -> [Dict:Config]
+#     """
+#     # if the input is a Config object
+#     if type(ConfigItem) == dict:
+#         # set the id as the Config object's id
+#         return ConfigItem
+#     # id_input is not an object
+#     else:
+#         # try treating the input as a DPG item
+#         try:
+#             # get the item value
+#             temp = dpg.get_value(ConfigItem)
+#             # if the item was a valid DPG item, it will return some value
+#             if not (temp is None):
+#                 # set the Config name
+#                 Config = dpg.get_value(ConfigItem)
+#             # otherwise assume the input was actually a Config ID (string)
+#             else:
+#                 # assume the input was actually a Config ID (str)
+#                 Config = ConfigItem
+#         # failed to get the item value
+#         except Exception:
+#             # passed ID wasn't a DPG item
+#             pass
+#             # the id is a string, set the ID to the value 
+#             Config = str(ConfigItem)
+#     # get the machine file
+#     machine_file = openMachineConfiguration(Machine['name'])
+#     # for each mapping in the machine's config
+#     for curr_map in machine_file['mappings']:
+#         # check the IDs against each other
+#         if str(curr_map['id']) == Config:
+#             # pull that Config object
+#             Config = curr_map
+#             break
+#     # return Config
+#     return Config
 
 # validates the input of an ADDED config
 def validateAddConfigInput(Model, Machine, new_id, info_checks, measurement_checks, 
@@ -1027,30 +1101,6 @@ def validateEditModelInput(Model, new_name, prior_name, checks, inputs):
     # return the Model
     return [True, Model]
 
-# shows a warning popup with a custom message
-def showWarningPopup(warning_message):
-    """showWarningPopup(warning_message)
-    
-    warning_message: str; the message to be displayed to the user.
-
-    Shows an 'error' type warning popup that tells the user something went wrong.
-    """
-    # clear the warning popup
-    clearWindow("warningPopup")
-    # create the popup
-    WarningPopup = dpg.window(tag = "warningPopup", popup = True, no_open_over_existing_popup = False,
-        width = 400, height = 250, no_move = True, no_close = True, no_collapse = True, no_resize = True,
-        pos = [(dpg.get_viewport_client_width() / 2) - 200, (dpg.get_viewport_client_height() / 2) - 125],
-        modal = True)
-    # add items to the popup
-    with WarningPopup:
-        # add a title label
-        dpg.add_text("Warning:", color = [255, 150, 75])
-        dpg.add_text(warning_message)
-        dpg.add_text("Please resolve these issues and try again!", color = [255, 150, 75])
-        # add an Okay button
-        dpg.add_button(label = "Okay!", width = 150, height = 25, 
-            callback = deleteItem, user_data = ["warningPopup"])
 
 # currentAverageRuntime allows calculation of the current average runtime of the script
 def currentAverageRuntime():
