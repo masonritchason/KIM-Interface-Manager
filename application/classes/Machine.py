@@ -6,10 +6,11 @@ from json import dumps
 # KIM Interface Machine Class
 class Machine:
     # default constructor
-    def __init__(self, name, measurements, mapping_configurations):
+    def __init__(self, name, measurements, mapping_configurations, model):
         self.name = name
         self.measurements = measurements
         self.mapping_configurations = mapping_configurations 
+        self.model = model
 
     # default print
     def __str__(self):

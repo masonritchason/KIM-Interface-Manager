@@ -6,9 +6,10 @@ from json import dumps
 # KIM Interface Mapping Configuration Class
 class MappingConfiguration:
     # default constructor
-    def __init__(self, id_num, mappings):
+    def __init__(self, id_num, mappings, machine):
         self.id_num = id_num
         self.mappings = mappings
+        self.machine = machine
 
     # default print
     def __str__(self):

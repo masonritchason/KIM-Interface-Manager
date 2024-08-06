@@ -185,12 +185,13 @@ def getConfigs(machine):
     return configs
 
 # get Machines from the KIM Interface config file
-def getMachines(model):
-    """getMachines(model)
+def getMachines(model, get_configs):
+    """getMachines(model, get_configs)
     
     Returns the list of Machines currently in the passed Model.
 
     model: Model Object; the Model object to return its Machines.
+    get_configs: bool; indicate whether to get Config objects.
 
     -> [Machine]
     """
@@ -211,18 +212,23 @@ def getMachines(model):
             curr = curr.replace('Â±', '±')
             # save the changed measurement
             TempMachine.measurements[j] = curr
-        # add the Machine's Configs to its Configs attribute
-        TempMachine.mapping_configurations = getConfigs(TempMachine)
+        # if the get configs flag is set
+        if get_configs:
+            # add the Machine's Configs to its Configs attribute
+            TempMachine.mapping_configurations = getConfigs(TempMachine)
         # append that object to the list
         machines.append(TempMachine)
     # return machines list
     return machines
 
 # get Models from the KIM Interface config file
-def getModels():
-    """getModels()
+def getModels(get_machines, get_configs):
+    """getModels(get_machines, get_configs)
     
     Returns the list of Models currently in the KIM Interface config file.
+
+    get_machines: bool; indicate whether to get Machine objects.
+    get_configs: bool; indicate whether to continue after getMachines (Config objects).
 
     -> [Model]
     """
@@ -236,8 +242,10 @@ def getModels():
         curr = models[i]
         # create a new Model object
         TempModel = Model.Model(curr['name'], curr['base_information'], curr['machines'])
-        # add the Model's Machines to its Machines attribute
-        TempModel.machines = getMachines(TempModel)
+        # if the get_machines flag is set
+        if get_machines:
+            # add the Model's Machines to its Machines attribute
+            TempModel.machines = getMachines(TempModel, get_configs)
         # overwrite the Model in the models list
         models[i] = TempModel
     # return models list
