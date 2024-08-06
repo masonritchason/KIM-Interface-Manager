@@ -178,7 +178,7 @@ def getConfigs(machine):
         # save the current Config
         curr = machine.mapping_configurations[i]
         # create a Config object
-        TempConfig = MappingConfiguration.MappingConfiguration(curr['id'], curr['mappings'])
+        TempConfig = MappingConfiguration.MappingConfiguration(curr['id'], curr['mappings'], machine)
         # append that object to the list
         configs.append(TempConfig)
     # return configs list
@@ -202,7 +202,8 @@ def getMachines(model, get_configs):
         # save the current Machine
         curr = model.machines[i]
         # create a Machine object
-        TempMachine = Machine.Machine(curr['name'], curr['measurements'], curr['mapping_configurations'])
+        TempMachine = Machine.Machine(curr['name'], curr['measurements'], 
+            curr['mapping_configurations'], model)
         # fix machine measurement character issues
         for j in range(len(TempMachine.measurements)):
             # save current measurement
@@ -3343,14 +3344,20 @@ def updateSelectedMachine(sender, app_data, user_data):
     machine_name = dpg.get_value(user_data[0])
     # set the Machine text value
     dpg.set_value(user_data[2], machine_name)
-    # get the machine file for this Machine
-    machine_file = openMachineConfiguration(machine_name)
-    # get the mapping configurations
-    config_list = machine_file['mappings']
+    # get the configuration objects
+    models = getModels(get_machines = True, get_configs = True)
+    # find the Machine in the Model list
+    for model in models:
+        # go through each Machine 
+        for machine in model.machines:
+            # does the Machine name match?
+            if machine.name == machine_name:
+                # save this Machine's Configs
+                config_list = machine.mapping_configurations
     # update the list to just hold IDs
     for i in range(len(config_list)):
         # set the current index of the list to just the ID
-        config_list[i] = config_list[i]['id']
+        config_list[i] = config_list[i].id_num
     # show the mapping configuration selection list
     updateMappingConfigurationList(sender = "", app_data = "", user_data = [user_data[1], config_list])
 
@@ -3488,14 +3495,16 @@ def informationWindow(sender, app_data, user_data):
         dpg.add_text("Current Average Runtime:", pos = [75, 300])
         # add the text object that holds the current runtime avg
         dpg.add_text(currentAverageRuntime(), color = [0, 255, 0], pos = [75, 325])
+        # get the configuration objects (Models & Machines, no configs)
+        models = getModels(get_machines = True, get_configs = False)
         # create a Machine List
-        machines = getMachines()
-        # create a pruned copy just holding the Machine names
         machine_names = []
-        # for every Machine in the configuration file
-        for machine in machines:
-            # add Machine name to machine_names list
-            machine_names.append(machine['name'])
+        # for each Model
+        for model in models:
+            # for each Machine in the Model list
+            for machine in model.machines:
+                # add the Model's Machines to the list (name only)
+                machine_names.append(machine.name)
         # add Machine selection label
         dpg.add_text("Select a Machine:", pos = [400, 150])
         # sort the mapping configuration list
