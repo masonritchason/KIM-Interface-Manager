@@ -60,12 +60,11 @@ StartupWindow = dpg.window(tag = "startupWindow", pos = [0, 0], width = 1280, he
 ### Helper Function Segment
 #__________________________________________________________________________________________________
 # timestamp function adds a timestamp to the top of the config file passed
-def timestamp(cfg, filename, action):
-    """timestamp(cfg, filename, action)
+def timestamp(cfg, action):
+    """timestamp(cfg, action)
 
     cfg: str|dict; the path of the file needing a timestamp update OR
         a file dict object with a timestamp key.
-    filename: str; a plaintext name to display on the changelog file entry.
     action: str; a plaintext description of the action performed.
     
     Creates a timestamp on the top of the configuration files. This timestamp
@@ -114,8 +113,7 @@ def timestamp(cfg, filename, action):
     # add entry to the changelog
     File = open(os.path.join(sys_env_dir, "logs", "changelog.txt"), 'a')
     # write the entry to the file
-    File.write(str(str(datetime.now()) + " | " + str(user) + " | " 
-        + str(filename) + " | " + str(action) + "\n"))
+    File.write(str(str(datetime.now()) + " | " + str(user) + " | " + str(action) + "\n"))
     # close file
     File.close()
     # return the new config item (may not be used if a filepath was passed)
@@ -153,7 +151,7 @@ def overwriteConfigFile(new_config_object, action):
     Overwrites the existing KIM Interface configuration JSON file with an edited version.
     """
     # update the new config object's timestamp
-    new_config_object = timestamp(new_config_object, "KIM_interface_configuration.json", action)
+    new_config_object = timestamp(new_config_object, action)
     # convert the new config to json
     Interface_Config_File = dumps(new_config_object, indent = 4)
     # open the KIM Interface config file
@@ -217,13 +215,13 @@ def pastBackup():
     # convert to JSON
     text = loads(text)
     # get the timestamp
-    timestamp = text['timestamp']
+    time = text['timestamp']
     # remove milliseconds from timestamp
-    timestamp = (timestamp.split('.'))[0]
+    time = (time.split('.'))[0]
     # remove invalid directory characters
-    timestamp = timestamp.replace(':', '.')
+    time = time.replace(':', '.')
     # save the past backup folder dir
-    past_dir = os.path.join(sys_env_dir, "bin", "backups", "past", timestamp)
+    past_dir = os.path.join(sys_env_dir, "bin", "backups", "past", time)
     # check the past backups folder
     checkBackupCount()
     # if the timestamped config has not already been backed-up
@@ -663,6 +661,7 @@ def validateAddConfigInput(model, machine, new_id, info_checks, measurement_chec
     # if here, the config information can make a config Object
     config = {"id":new_id, "configuration":[]}
     # add each of the maps to the configuration list
+    #NOTE: just set the lists equal to each other when doing OOP (like model below)
     for curr_map in map_list:
         # add the item
         config["configuration"].append(curr_map)
@@ -752,6 +751,7 @@ def validateEditConfigInput(model, machine, config, new_id, prior_id, checks, in
     # if here, the config information can make a config Object
     config = {"id":new_id, "configuration":[]}
     # add each of the maps to the configuration list
+    #NOTE: just set the lists equal to each other when doing OOP (like model below)
     for curr_map in map_list:
         # add the item
         config["configuration"].append(curr_map)
@@ -823,6 +823,7 @@ def validateAddMachineInput(model, machine_name, measurements):
     # if here, the machine information can make a machine Object
     machine = {"name":machine_name, "measurements":[]}
     # add each of the measurements to the measurement list
+    #NOTE: just set the lists equal to each other when doing OOP (like model below)
     for meas in meas_list:
         # add the item
         machine['measurements'].append(meas)
@@ -867,7 +868,7 @@ def validateEditMachineInput(model, machine, new_name, prior_name, checks, input
         # valid name was entered
         else:
             # get the model's machine list
-            model_machines = model['model_machines']
+            model_machines = model.machines
             # check that the name is unique
             for curr_machine in model_machines:
                 # if the machine names match
@@ -881,7 +882,7 @@ def validateEditMachineInput(model, machine, new_name, prior_name, checks, input
                         # overlapping names, not unique
                         return [False, 
                             {"error":"Machine names must be unique.\n"
-                            + "The Machine '" + new_name + "' for " + model['model_name']
+                            + "The Machine '" + new_name + "' for " + model.name
                             + "\nhas already been assigned."
                             + "\nChoose a different name for this Machine."}]
     # create a list to hold valid measurements
@@ -913,11 +914,9 @@ def validateEditMachineInput(model, machine, new_name, prior_name, checks, input
         # increment the index
         index += 1
     # if here, the machine information can make a machine Object
-    machine = {"name":new_name, "measurements":[]}
+    machine = Machine(name = new_name, measurements = [])
     # add each of the measurements to the measurement list
-    for meas in meas_list:
-        # add the item
-        machine['measurements'].append(meas)
+    machine.measurements = meas_list
     # return the machine
     return [True, machine]   
 
@@ -988,9 +987,7 @@ def validateAddModelInput(model_name, base_information):
     # if here, the model information can make a model Object
     model = Model(name = model_name, base_information = [], machines = [])
     # add each base information to the base information list
-    for info in info_list:
-        # add the item
-        model.base_information.append(info)
+    model.base_information = info_list
     # return the model
     return [True, model]  
 
@@ -1083,9 +1080,7 @@ def validateEditModelInput(model, new_name, prior_name, checks, inputs):
     # if here, the model information can make a model Object
     model = Model(name = new_name, base_information = [], machines = model.machines)
     # add each of the base information headers to the list
-    for info in info_list:
-        # add the item
-        model.base_information.append(info)
+    model.base_information = info_list
     # return the model
     return [True, model]
 
@@ -1222,7 +1217,7 @@ def commitConfigEdits(sender, app_data, user_data):
         # update the value of that index
         machine_file['mappings'][config_index] = EditedConfig
         # timestamp the file
-        machine_file = timestamp(machine_file, str(machine['name']) + ".json", 
+        machine_file = timestamp(machine_file,
             "Edit Configuration: " + str(machine['name']) + "; ID # " + str(EditedConfig['id']))
         # dump config to JSON
         machine_file = dumps(machine_file, indent = 4)
@@ -1303,7 +1298,7 @@ def commitConfigAdd(sender, app_data, user_data):
                 curr_item['item'] = curr_item['item'].replace('Â±', '±')
         # write the machine's information to its file after appending the new mapping
         # timestamp the file
-        machine_file = timestamp(machine_file, str(machine['name']) + ".json", 
+        machine_file = timestamp(machine_file, 
             "Add Configuration: " + str(machine['name']) + "; ID # " + str(NewConfig['id']))
         # reformat the machine_file text into JSON
         machine_file = dumps(machine_file, indent = 4)
@@ -1397,7 +1392,7 @@ def commitConfigDuplicate(sender, app_data, user_data):
             curr_item['item'] = curr_item['item'].replace('Â±', '±')
     # write the machine's information to its file after appending the new mapping
     # timestamp the file
-    machine_file = timestamp(machine_file, str(machine['name']) + ".json", 
+    machine_file = timestamp(machine_file,
         "Duplicate Configuration: " + str(machine['name']) + "; ID # " + str(DuplicateConfig['id']))
     # reformat the machine_file text into JSON
     machine_file = dumps(machine_file, indent = 4)
@@ -1459,7 +1454,7 @@ def commitConfigRemove(sender, app_data, user_data):
         # increment the index
         index += 1
     # timestamp the file
-    machine_file = timestamp(machine_file, str(machine['name']) + ".json", 
+    machine_file = timestamp(machine_file,
         "Remove Configuration: " + str(machine['name']) + "; ID # " + str(config['id']))
     # convert the new config to json
     machine_file = dumps(machine_file, indent = 4)
@@ -1891,10 +1886,9 @@ def selectConfig(sender, app_data, user_data):
 #__________________________________________________________________________________________________
 # makes an edit to a machine in the KIM Interface configuration file
 def commitMachineEdits(sender, app_data, user_data):
-    """commitMachineEdits(user_data = [continueCode, model, machine, 
+    """commitMachineEdits(user_data = [model, machine, 
         new_name, prior_name, checks, inputs])
     
-    continueCode: str; continue code correspdonding to the action being performed.
     model: model; model Object owning the edited machine.
     machine: machine; machine Object being edited.
     new_name: DPG item; Input box holding the edited name of the machine.
@@ -1903,19 +1897,17 @@ def commitMachineEdits(sender, app_data, user_data):
     inputs: [DPG Input Boxes]; list of edited selected machine measurements maps.
 
     Takes a machine with edits and overwrites that machine in the config."""
-    # get continue code
-    continueCode = user_data[0]
     # get model
-    model = user_data[1]
+    model = user_data[0]
     # get machine
-    machine = getMachineObject(user_data[2])
+    machine = dynamicGetMachine(user_data[1], model = model)
     # get the new machine name
-    new_name = user_data[3]
+    new_name = user_data[2]
     # get the name prior to editing
-    prior_name = user_data[4]
+    prior_name = user_data[3]
     # get the edited machine information
-    checks = user_data[5]
-    inputs = user_data[6]
+    checks = user_data[4]
+    inputs = user_data[5]
     # validate the passed machine information
     validation = validateEditMachineInput(model, machine, new_name, prior_name, checks, inputs)
     # check that it was valid
@@ -1925,87 +1917,47 @@ def commitMachineEdits(sender, app_data, user_data):
     # edits were valid
     else:
         # update the machine
-        EditedMachine = validation[1]
+        edited_machine = validation[1]
         # reflect edits to measurement fields in configs
-        File = open(os.path.join(sys_env_dir, "config", "mapping configurations", 
-            model['model_name'], machine['name'] + ".json"), 'r')
-        # read the file contents
-        machine_file = File.read()
-        # close the machine file
-        File.close()
-        # format the machine file as JSON
-        machine_file = loads(machine_file)
         # create a list to hold the removed measurements
         removed_meas = []
         # calculate removed measurements
-        for meas in machine['measurements']:
-            # if this measurement isnt in the EditedMachine's list
-            if meas not in EditedMachine['measurements']:
+        for meas in machine.measurements:
+            # if this measurement isn't in the edited machine's list
+            if meas not in edited_machine.measurements:
                 # add the measurement to the removed list
                 removed_meas.append(meas)
-        # for each config in the machine file
-        for config in machine_file['mappings']:
+        # for each config in the machine's list
+        for config in edited_machine.mapping_configurations:
             # create a list to store removed mapping items
             removed_items = []
             # for each mapped Item in the Configuration
-            for i in range(len(config['configuration'])):
+            for i in range(len(config.mappings)):
                 # if the current item in the mapped item list was removed
-                if config['configuration'][i]['item'] in removed_meas:
+                if config.mappings[i]['item'] in removed_meas:
                     # add this index value to the removed list
                     removed_items.append(i)
             # reverse the list of removed indexes (remove from right to left (large to small index))
             removed_items.reverse()
             # for each index needing removed
-            for index in removed_items:
+            for i in removed_items:
                 # remove that item by index
-                config['configuration'].pop(index)
-        # update the machine's name
-        machine_file['machine'] = EditedMachine['name']
-        # timestamp the file
-        machine_file = timestamp(machine_file, str(EditedMachine['name']) + ".json", 
-            "Edit Machine: " + str(EditedMachine['name']))
-        # format the new machine file text as JSON
-        machine_file = dumps(machine_file, indent = 4)
-        # overwrite the machine file
-        File = open(os.path.join(sys_env_dir, "config", "mapping configurations", 
-            model['model_name'], machine['name'] + ".json"), 'w')
-        # write the new JSON to the file
-        File.write(machine_file)
-        # close the machine file
-        File.close()
+                config.mappings.pop(i)
         # get the KIM Interface config file 
         Interface_Config_File = openConfigFile()
-        # get the index of the machine in the machine list
-        machines = getMachines()
-        # get the index from the list
-        machine_index = machines.index(machine)
-        # update that machine's measurement list
-        Interface_Config_File['machines'][machine_index] = EditedMachine
-        # get a list of Models
-        models = getModels()
-        # find the model's index in the model list
-        model_index = models.index(model)
-        # find the machine index in the model's machine list
-        machine_index = model['model_machines'].index(machine['name'])
-        # update the machine's name in the model's Machines list
-        model['model_machines'][machine_index] = EditedMachine['name']
+        # get the model index
+        model_index = Interface_Config_File['models'].index(Model.modelToDict(model))
+        # get the machine index
+        machine_index = model.machines.index(Machine.machineToDict(machine))
+        # update the machine in the model list
+        model.machines[machine_index] = Machine.machineToDict(edited_machine)
         # update the model in the config file
         Interface_Config_File['models'][model_index] = model
         # overwrite the KIM Interface config file
-        overwriteConfigFile(Interface_Config_File, "Edit Machine: " + str(EditedMachine['name']))
-        # set the machine file directory with the old machine name
-        old_machine_file = os.path.join(
-            sys_env_dir, "config", "mapping configurations", 
-            model['model_name'], machine['name'] + ".json")
-        # set the machine file directory with the new machine name
-        new_machine_file = os.path.join(
-            sys_env_dir, "config", "mapping configurations", 
-            model['model_name'], EditedMachine['name'] + ".json")
-        # update the model's folder in config folder
-        os.rename(old_machine_file, new_machine_file)
-        # update the model and machine objects in runtime 
-        model = getModelObject(model['model_name'])
-        machine = getMachineObject(EditedMachine['name'])
+        overwriteConfigFile(Interface_Config_File, "Edit Machine: " + machine.name 
+            + " --> " + edited_machine.name)
+        # update the machine object in runtime 
+        machine = edited_machine
         # clear the Popup alias
         clearWindow("confirmPopup")
         # create the confirmation popup
@@ -2017,7 +1969,7 @@ def commitMachineEdits(sender, app_data, user_data):
         with Popup:
             # add a success message
             dpg.add_text("Success:", color = [150, 150, 255])
-            dpg.add_text("Your edits to " + machine['name'] + "\nhave been saved.")
+            dpg.add_text("Your edits to " + str(machine) + "\nhave been saved.")
             # add an Okay button
             dpg.add_button(label = "Okay!", pos = [125, 100], width = 150, height = 25,
                 callback = viewMachine, user_data = [model, machine])
@@ -2155,11 +2107,10 @@ def commitMachineRemove(sender, app_data, user_data):
 
 # updates the edit machine measurements subwindow
 def editMachineSubwindow(sender, app_data, user_data):
-    """editMachineSubwindow(user_data = [continueCode, model, machine, checks, inputs])
+    """editMachineSubwindow(user_data = [model, machine, checks, inputs])
 
     Subwindow segment of the EditMachineWindow
 
-    continueCode: str; continue code correspdonding to the action being performed.
     model: model; model Object owning the added machine.
     machine: machine; machine being edited.
     checks: [DPG Check Boxes]; list of edited selected machine measurements.
@@ -2167,16 +2118,14 @@ def editMachineSubwindow(sender, app_data, user_data):
     
     Allows for dynamic addition of model Base Information
     """
-    # get continue code
-    continueCode = user_data[0]
     # get the model owning the edited machine
-    model = user_data[1]
+    model = user_data[0]
     # get the selected machine
-    machine = user_data[2]
+    machine = user_data[1]
     # get the current checks list
-    checks = user_data[3]
+    checks = user_data[2]
     # get the current inputs list
-    inputs = user_data[4]
+    inputs = user_data[3]
     # clear windows
     clearWindowRegistry("editMachineWindow")
     # create a new subwindow to show the machine's measurements
@@ -2193,7 +2142,7 @@ def editMachineSubwindow(sender, app_data, user_data):
         dpg.add_button(tag = "addMeasurementButton", label = "+ New Measurement Field", 
             pos = [175, 50], width = 225, callback = addMachineMeasurementField)
         # for each field in the measurement list
-        for meas in machine['measurements']:
+        for meas in machine.measurements:
             # add a text item for that field
             dpg.add_text("Edit Spec:", pos = [75, 0 + (pos_offset * 25)])
             # add a checkbox for this spec
@@ -2210,7 +2159,7 @@ def editMachineSubwindow(sender, app_data, user_data):
             # update the add measurement button position
             dpg.set_item_pos("addMeasurementButton", [175, 25 + (pos_offset * 25)])
         # set the add measurement button user_data
-        dpg.set_item_user_data("addMeasurementButton", [model, machine, checks, inputs])
+        dpg.set_item_user_data("addMeasurementButton", [model, machine])
         # add informational text
         dpg.add_text("! - De-selecting an existing Measurement Field will\n" 
                     + "    remove it from the Machine's list and ALL the Machine's\n"
@@ -2219,7 +2168,7 @@ def editMachineSubwindow(sender, app_data, user_data):
         # add a Finish Editing button
         dpg.add_button(label = "Finish Editing Machine...", width = 270, pos = [75, 500],
             callback = commitMachineEdits, user_data = 
-            ["editMachine", model, machine, "machineNameInput", machine['name'], checks, inputs])
+            [model, machine, "machineNameInput", machine['name'], checks, inputs])
 
 def updateMachineMidEdit(sender, app_data, user_data):
     """updateMachineMidEdit(user_data = [model, machine, new_spec])
@@ -2234,32 +2183,28 @@ def updateMachineMidEdit(sender, app_data, user_data):
     model = user_data[0]
     # get the machine
     machine = user_data[1]
-    # get the new measurement specification
-    new_spec = dpg.get_value(user_data[2])
     # get the KIM Interface config file
     Interface_Config_File = openConfigFile()
     # find the machine in KIM Interface config
-    machine_index = Interface_Config_File['machines'].index(machine)
-    # add a new measurement field to the machine
-    machine['measurements'].append(new_spec)
+    machine_index = Interface_Config_File['machines'].index(Machine.machineToDict(machine))
+    # add the new spec to the machine
+    machine.measurements.append(dpg.get_value(user_data[2]))
     # update the machine in the KIM Interface config file
-    Interface_Config_File['machines'][machine_index] = machine
+    Interface_Config_File['machines'][machine_index] = Machine.machineToDict(machine)
     # overwrite the KIM Interface config file
-    overwriteConfigFile(Interface_Config_File, "Edit Machine: " + str(machine['name']))
+    overwriteConfigFile(Interface_Config_File, "Edit Machine: " + machine.name)
     # update the editMachineSubwindow
     editMachineSubwindow(sender = "", app_data = "", 
-        user_data = ["editMachine", model, machine, [], []])
+        user_data = [model, machine, [], []])
     # delete the popup
     deleteItem(sender = "", app_data = "", user_data = ["fieldValuePopup"])
 
 # adds a new measurement to the edited machine
 def addMachineMeasurementField(sender, app_data, user_data):
-    """addMachineMeasurementField(user_data = [model, machine, checks, inputs])
+    """addMachineMeasurementField(user_data = [model, machine])
     
     model: model; the model owning the machine being edited.
     machine: machine; the machine being edited.
-    checks: [DPG Check Boxes]; list of edited selected machine measurements.
-    inputs: [DPG Input Boxes]; list of edited selected machine measurements maps.
 
     Prompts the user to enter a new Measurement Specification.
     """
@@ -2267,10 +2212,6 @@ def addMachineMeasurementField(sender, app_data, user_data):
     model = user_data[0]
     # get machine
     machine = user_data[1]
-    # get checks list
-    checks = user_data[2]
-    # get inputs list
-    inputs = user_data[3]
     # create a field value input popup
     Popup = dpg.window(tag = "fieldValuePopup", popup = True, no_open_over_existing_popup = False,
         width = 400, height = 250, no_move = True, no_close = True, no_collapse = True, no_resize = True,
@@ -2399,9 +2340,8 @@ def removeMachine(sender, app_data, user_data):
 
 # edit machine flow
 def editMachine(sender, app_data, user_data):
-    """editMachine(user_data = continueCode, model, machine)
+    """editMachine(user_data = model, machine)
 
-    continueCode: str; continue code correspdonding to the action being performed.
     model: model; model Object owning the edited machine.
     machine: machine; machine Object being edited.
 
@@ -2411,12 +2351,10 @@ def editMachine(sender, app_data, user_data):
     Invoked by the selection of "Edit machine" in ViewMachineWindow;
     and from the main menu bar.
     """
-    # get continue code
-    continueCode = user_data[0]
     # get model
-    model = user_data[1]
+    model = user_data[0]
     # get machine
-    machine = getMachineObject(user_data[2])
+    machine = dynamicGetMachine(user_data[1], model = model)
     # clear windows
     clearWindowRegistry()
     # enable the EditMachineWindow
@@ -2433,10 +2371,10 @@ def editMachine(sender, app_data, user_data):
         dpg.add_text("Machine Name:", pos = [75, 100])
         # add an input for the machine name
         dpg.add_input_text(tag = "machineNameInput", pos = [175, 100], 
-            width = 200, default_value = machine['name'])
+            width = 200, default_value = machine.name)
         # open the editMachineSubwindow
         editMachineSubwindow(sender = "", app_data = "", 
-            user_data = ["editMachine", model, machine, [], []])
+            user_data = [model, machine, [], []])
 
 # view machine flow
 def viewMachine(sender, app_data, user_data):
@@ -2482,7 +2420,7 @@ def viewMachine(sender, app_data, user_data):
         dpg.add_text("Machine Actions:", pos = [800, 200])
         # add action buttons
         dpg.add_button(label = "Edit this Machine                   ->", pos = [800, 225],
-            callback = editMachine, user_data = ["editMachine", model, machine])
+            callback = editMachine, user_data = [model, machine])
         dpg.add_button(label = "Remove this Machine                 !!", pos = [800, 250],
             callback = removeMachine, user_data = ["removeMachine", model, machine])
         dpg.add_button(label = "Add a Configuration to this Machine ->", pos = [800, 275],
