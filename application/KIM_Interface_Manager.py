@@ -1867,7 +1867,21 @@ def selectConfig(sender, app_data, user_data):
     # get model
     model = user_data[1]
     # get machine
-    machine = getMachineObject(user_data[2])
+    machine = user_data[2]
+    # find the actual machine object
+    for i in range(len(model.machines)):
+        # save the current machine
+        curr = model.machines[i]
+        # do the model names match?
+        try:
+            if curr.name == dpg.get_value(machine):
+                # update the machine object
+                machine = curr
+        # machine isn't a dpg item, it must be a machine object
+        except Exception as ex:
+            if curr.name == machine.name:
+                # update the machine object
+                machine = curr
     # clear windows
     clearWindowRegistry(["selectModelWindow", "selectMachineWindow"])
     # create a SelectMapping window
@@ -1877,12 +1891,10 @@ def selectConfig(sender, app_data, user_data):
     with SelectConfigWindow:
         # mapping listbox (hidden at first)
         list_items = []
-        # get the machine file
-        machine_file = openMachineConfiguration(machine['name'])
-        # find the machine's mappings
-        for curr_mapping in machine_file['mappings']:
-            # add the mapping to the list
-            list_items.append(curr_mapping['id'])
+        # create a configs list
+        for i in range(len(machine.mapping_configurations)):
+            # add the config id to the list
+            list_items.append(machine.mapping_configurations[i].id_num)
         # if list is empty
         if not list_items:
             # just add "None"; skip the list
@@ -2520,7 +2532,7 @@ def viewMachine(sender, app_data, user_data):
 
 # select machine flow
 def selectMachine(sender, app_data, user_data):
-    """selectMachine(user_data = continueCode, model)
+    """selectMachine(user_data = continueCode, model, models)
 
     continueCode: str; continue code correspdonding to the action being performed.
     model: model; model Object being selected from.
@@ -2558,9 +2570,9 @@ def selectMachine(sender, app_data, user_data):
         # machine listbox (hidden at first)
         list_items = []
         # extract model machine names
-        for machine in model['model_machines']:
+        for machine in model.machines:
             # add it to the list
-            list_items.append(machine)
+            list_items.append(machine.name)
         # if list is empty
         if not list_items:
             # just add "None"; skip the list
@@ -3218,7 +3230,7 @@ def selectModel(sender, app_data, user_data):
         # add select model label (always visible)
         dpg.add_text("Select a Model:", pos = [75, 50])
         # pull models from KIM Interface config
-        models = getModels(get_machines = False, get_configs = False)
+        models = getModels(get_machines = True, get_configs = True)
         # create a name list
         list_items = []
         # for each model in KIM Interface config
