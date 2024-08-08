@@ -15,11 +15,18 @@ class MappingConfiguration:
     def __str__(self):
         return f"Config {self.id_num}"
 
-    def toJSON(id_num, mappings):
+    def configToDict(self):
+        """Converts the object to a Dict that can be used in config writing/JSON conversion."""
+        # create a dictionary to hold the object
+        to_dict = {"id":int(self.id_num), 
+                   "mappings":self.mappings}
+        # return the dictionary
+        return to_dict
+
+    def configToJSON(self):
         """Writes the class to a JSON object that can be stored in configuration files."""
-        # create a Dictionary to hold the Object
-        to_dict = {"id":int(id_num), 
-                   "mappings":mappings}
+        # get dictionary format
+        to_dict = MappingConfiguration.configToDict(self)
         # dump to a JSON formatted object
         to_json = dumps(to_dict, indent = 4)
         # return the json object
