@@ -431,10 +431,14 @@ def dynamicGetModel(model_input):
 
     model_input: Model | DPG Listbox | str; some form of identifying information of a model.
     """
+    #debug
+    print("getModel: Trying value " + str(model_input) + " w/type: " + str(type(model_input)))
     # get model list
     models = getModels(get_machines = True, get_configs = True)
     # test if input is already a model
     if not (isinstance(model_input, Model)):
+        #debug
+        print("getModel: Value " + str(model_input) + " is not of Model Class type")
         # find the actual model object
         for i in range(len(models)):
             # save the current model
@@ -443,12 +447,20 @@ def dynamicGetModel(model_input):
             try:
                 if curr.name == dpg.get_value(model_input):
                     # return the current model
+                    #debug
+                    print("getModel: Value " + str(model_input) + " is of DPG Class type.")
                     return curr
             # input isn't a dpg item, it must be a string
             except Exception as ex:
+                #debug
+                print("getModel: Value " + str(model_input) + " is not of DPG Class type. Trying as string")
                 if str(curr.name) == str(model_input):
                     # return the current model
+                    #debug
+                    print("getModel: Value " + str(model_input) + " is of string type.")
                     return curr
+                #debug
+                print("getModel: Value " + str(model_input) + " is not of string type")
     # the model is already a model, just return it
     else:
         return model_input
@@ -1620,11 +1632,12 @@ def removeConfig(sender, app_data, user_data):
         dpg.add_text("Removing a Config from the Interface is 100" + '%' + "\n" 
             + "irreversible! Only perform this action if you\n"
             + "are completely sure that it is out-of-use.")
+        dpg.add_text("Confirm permanent removal of " + str(config) + "?", color = [255, 0, 50])
         # add a Cancel button
-        dpg.add_button(label = "Cancel", pos = [10, 100], width = 180, height = 25,
+        dpg.add_button(label = "Cancel", pos = [10, 150], width = 180, height = 25,
             callback = deleteItem, user_data = ["removeConfig"])
         # add a Delete button
-        dpg.add_button(label = "Delete", pos = [200, 100], width = 180, height = 25,
+        dpg.add_button(label = "Delete", pos = [200, 150], width = 180, height = 25,
             callback = commitConfigRemove, user_data = ["removeConfig", model, machine, config])
 
 # edit config flow
@@ -2376,11 +2389,12 @@ def removeMachine(sender, app_data, user_data):
         dpg.add_text("Removing a Machine from the Interface is 100" + '%' + "\n" 
             + "irreversible! Only perform this action if you\n"
             + "are completely sure that it is out-of-use.")
+        dpg.add_text("Confirm permanent removal of " + str(machine) + "?", color = [255, 0, 50])
         # add a Cancel button
-        dpg.add_button(label = "Cancel", pos = [10, 100], width = 180, height = 25,
+        dpg.add_button(label = "Cancel", pos = [10, 150], width = 180, height = 25,
             callback = deleteItem, user_data = ["removeMachine"])
         # add a Delete button
-        dpg.add_button(label = "Delete", pos = [200, 100], width = 180, height = 25,
+        dpg.add_button(label = "Delete", pos = [200, 150], width = 180, height = 25,
             callback = commitMachineRemove, user_data = ["removeMachine", model, machine])
 
 # edit machine flow
@@ -2674,40 +2688,19 @@ def commitModelAdd(sender, app_data, user_data):
 # removes a model from the KIM Interface configuration file
 def commitModelRemove(sender, app_data, user_data):
     """
-    commitModelRemove(user_data = continueCode, model)
+    commitModelRemove(user_data = model)
 
-    continueCode: str; continue code correspdonding to the action being performed.
     model: model; model being removed.
 
     Removes a model in the KIM Interface config."""
-    # get continue code
-    continueCode = user_data[0]
     # get the removed model
-    model = user_data[1]
+    model = user_data[0]
     # get the KIM Interface config file
     Interface_Config_File = openConfigFile()
     # remove that model from the list
-    Interface_Config_File['models'].remove(model)
-    # remove the model's machines from the KIM Interface config
-    for machine in Interface_Config_File['machines']:
-        # for each model machine
-        for model_machine in model['model_machines']:
-            # if the machine is in the model's list
-            if machine['name'] == model_machine:
-                # remove that machine from the KIM Interface config list
-                Interface_Config_File['machines'].remove(machine)
+    Interface_Config_File['models'].remove(Model.modelToDict(model))
     # overwrite the KIM Interface config file
-    overwriteConfigFile(Interface_Config_File, "Remove Model: " + str(model['model_name']))
-    # get all the machine files in the model folder
-    for root, dirs, files in os.walk(
-        top = os.path.join(sys_env_dir, "config", "mapping configurations", model['model_name']),
-        topdown = False):
-        # remove each file
-        for file in files:
-            # remove file
-            os.remove(os.path.join(root, file))
-    # remove model folder in mapping configurations
-    os.rmdir(os.path.join(sys_env_dir, "config", "mapping configurations", model['model_name']))
+    overwriteConfigFile(Interface_Config_File, "Remove Model: " + model.name)
     # clear the remove popup
     clearWindow("removeModel")
     # clear the Popup alias
@@ -2721,8 +2714,7 @@ def commitModelRemove(sender, app_data, user_data):
     with Popup:
         # add a success message
         dpg.add_text("Success:", color = [150, 150, 255])
-        dpg.add_text("Your model " + model['model_name'] 
-            + "\nhas been removed.")
+        dpg.add_text("The " + str(model) + " has been removed.")
         # add an Okay button
         dpg.add_button(label = "Okay!", pos = [125, 100], width = 150, height = 25,
             callback = selectModel, user_data = ["viewModel"])
@@ -2926,7 +2918,6 @@ def addModel(sender, app_data, user_data):
 def removeModel(sender, app_data, user_data):
     """removeModel(user_data = continueCode, model)
 
-    continueCode: str; continue code correspdonding to the action being performed.
     model: model; model being removed.
 
     ViewModelWindow -> RemoveModelWindow
@@ -2935,10 +2926,12 @@ def removeModel(sender, app_data, user_data):
     Invoked by the selection of "Remove model" in ViewModelWindow;
     and from the main menu bar.
     """
-    # get continue code
-    continueCode = user_data[0]
     # get information from call
-    model = getModelObject(user_data[1])
+    #debug
+    print("Model input before getting model: " + str(user_data[0]) + " with type " + str(type(user_data[0])))
+    model = dynamicGetModel(user_data[0])
+    #debug
+    print("Model after getting model: " + str(model) + " with type " + str(type(model)))
     # create a popup window
     RemoveModelPopup = dpg.window(tag = "removeModel", popup = True, no_open_over_existing_popup = True,
         width = 400, height = 250, no_move = True, no_close = True, no_collapse = True, no_resize = True,
@@ -2951,12 +2944,13 @@ def removeModel(sender, app_data, user_data):
         dpg.add_text("Removing a Model from the Interface is 100" + '%' + "\n" 
             + "irreversible! Only perform this action if you\n"
             + "are completely sure that it is out-of-use.")
+        dpg.add_text("Confirm permanent removal of " + str(model) + "?", color = [255, 0, 50])
         # add a Cancel button
-        dpg.add_button(label = "Cancel", pos = [10, 100], width = 180, height = 25,
+        dpg.add_button(label = "Cancel", pos = [10, 150], width = 180, height = 25,
             callback = deleteItem, user_data = ["removeModel"])
         # add a Delete button
-        dpg.add_button(label = "Delete", pos = [200, 100], width = 180, height = 25,
-            callback = commitModelRemove, user_data = ["removeModel", model])
+        dpg.add_button(label = "Delete", pos = [200, 150], width = 180, height = 25,
+            callback = commitModelRemove, user_data = [model])
 
 # edit model flow
 def editModel(sender, app_data, user_data):
@@ -3045,7 +3039,7 @@ def viewModel(sender, app_data, user_data):
         dpg.add_button(label = "Edit this Model             ->", pos = [800, 225],
             callback = editModel, user_data = [model])
         dpg.add_button(label = "Remove this Model           !!", pos = [800, 250],
-            callback = removeModel, user_data = ["removeModel", model])
+            callback = removeModel, user_data = [model])
         dpg.add_button(label = "Add a Machine to this Model ->", pos = [800, 275],
             callback = addMachine, user_data = ["addMachine", model])
 
