@@ -161,97 +161,6 @@ def overwriteConfigFile(new_config_object, action):
     # close the file
     File.close()
 
-# get Configs from the KIM Interface config file
-def getConfigs(machine):
-    """getConfigs(machine)
-    
-    Returns the list of configs currently in the passed machine.
-
-    machine: machine Object; the machine to return its Configs.
-
-    -> [config]
-    """
-    # create a list to hold the config objects
-    configs = []
-    # add Configs from each machine's config list in the machines list 
-    for i in range(len(machine.mapping_configurations)):
-        # save the current config
-        curr = machine.mapping_configurations[i]
-        # create a config object
-        TempConfig = MappingConfiguration.MappingConfiguration(curr['id'], curr['mappings'], machine)
-        # append that object to the list
-        configs.append(TempConfig)
-    # return configs list
-    return configs
-
-# get Machines from the KIM Interface config file
-def getMachines(model, get_configs):
-    """getMachines(model, get_configs)
-    
-    Returns the list of Machines currently in the passed model.
-
-    model: model Object; the model object to return its Machines.
-    get_configs: bool; indicate whether to get config objects.
-
-    -> [machine]
-    """
-    # create a list to hold the machine objects
-    machines = []
-    # add Machines from the passed model's machine list 
-    for i in range(len(model.machines)):
-        # save the current machine
-        curr = model.machines[i]
-        # create a machine object
-        TempMachine = Machine.Machine(curr['name'], curr['measurements'], 
-            curr['mapping_configurations'], model)
-        # fix machine measurement character issues
-        for j in range(len(TempMachine.measurements)):
-            # save current measurement
-            curr = TempMachine.measurements[j]
-            # replace characters 
-            curr = curr.replace('Ã˜', 'Ø')
-            curr = curr.replace('Â±', '±')
-            # save the changed measurement
-            TempMachine.measurements[j] = curr
-        # if the get configs flag is set
-        if get_configs:
-            # add the machine's Configs to its Configs attribute
-            TempMachine.mapping_configurations = getConfigs(TempMachine)
-        # append that object to the list
-        machines.append(TempMachine)
-    # return machines list
-    return machines
-
-# get Models from the KIM Interface config file
-def getModels(get_machines, get_configs):
-    """getModels(get_machines, get_configs)
-    
-    Returns the list of Models currently in the KIM Interface config file.
-
-    get_machines: bool; indicate whether to get machine objects.
-    get_configs: bool; indicate whether to continue after getMachines (config objects).
-
-    -> [model]
-    """
-    # get the KIM Interface config
-    Interface_Config_File = openConfigFile()
-    # set models
-    models = Interface_Config_File['models']
-    # convert to a list of model objects
-    for i in range(len(models)):
-        # save current model
-        curr = models[i]
-        # create a new model object
-        TempModel = Model.Model(curr['name'], curr['base_information'], curr['machines'])
-        # if the get_machines flag is set
-        if get_machines:
-            # add the model's Machines to its Machines attribute
-            TempModel.machines = getMachines(TempModel, get_configs)
-        # overwrite the model in the models list
-        models[i] = TempModel
-    # return models list
-    return models
-
 
 ### Backup Management
 # checkBackupCount maintains a limit of 25 backups in the system
@@ -422,6 +331,97 @@ def showWarningPopup(warning_message):
 
 
 ### Object-Returning Functions
+# get Configs from the KIM Interface config file
+def getConfigs(machine):
+    """getConfigs(machine)
+    
+    Returns the list of configs currently in the passed machine.
+
+    machine: machine Object; the machine to return its Configs.
+
+    -> [config]
+    """
+    # create a list to hold the config objects
+    configs = []
+    # add Configs from each machine's config list in the machines list 
+    for i in range(len(machine.mapping_configurations)):
+        # save the current config
+        curr = machine.mapping_configurations[i]
+        # create a config object
+        TempConfig = MappingConfiguration.MappingConfiguration(curr['id'], curr['mappings'], machine)
+        # append that object to the list
+        configs.append(TempConfig)
+    # return configs list
+    return configs
+
+# get Machines from the KIM Interface config file
+def getMachines(model, get_configs):
+    """getMachines(model, get_configs)
+    
+    Returns the list of Machines currently in the passed model.
+
+    model: model Object; the model object to return its Machines.
+    get_configs: bool; indicate whether to get config objects.
+
+    -> [machine]
+    """
+    # create a list to hold the machine objects
+    machines = []
+    # add Machines from the passed model's machine list 
+    for i in range(len(model.machines)):
+        # save the current machine
+        curr = model.machines[i]
+        # create a machine object
+        TempMachine = Machine.Machine(curr['name'], curr['measurements'], 
+            curr['mapping_configurations'], model)
+        # fix machine measurement character issues
+        for j in range(len(TempMachine.measurements)):
+            # save current measurement
+            curr = TempMachine.measurements[j]
+            # replace characters 
+            curr = curr.replace('Ã˜', 'Ø')
+            curr = curr.replace('Â±', '±')
+            # save the changed measurement
+            TempMachine.measurements[j] = curr
+        # if the get configs flag is set
+        if get_configs:
+            # add the machine's Configs to its Configs attribute
+            TempMachine.mapping_configurations = getConfigs(TempMachine)
+        # append that object to the list
+        machines.append(TempMachine)
+    # return machines list
+    return machines
+
+# get Models from the KIM Interface config file
+def getModels(get_machines, get_configs):
+    """getModels(get_machines, get_configs)
+    
+    Returns the list of Models currently in the KIM Interface config file.
+
+    get_machines: bool; indicate whether to get machine objects.
+    get_configs: bool; indicate whether to continue after getMachines (config objects).
+
+    -> [model]
+    """
+    # get the KIM Interface config
+    Interface_Config_File = openConfigFile()
+    # set models
+    models = Interface_Config_File['models']
+    # convert to a list of model objects
+    for i in range(len(models)):
+        # save current model
+        curr = models[i]
+        # create a new model object
+        TempModel = Model.Model(curr['name'], curr['base_information'], curr['machines'])
+        # if the get_machines flag is set
+        if get_machines:
+            # add the model's Machines to its Machines attribute
+            TempModel.machines = getMachines(TempModel, get_configs)
+        # overwrite the model in the models list
+        models[i] = TempModel
+    # return models list
+    return models
+
 # return a model object flexibly
 def dynamicGetModel(model_input):
     """
@@ -430,7 +430,7 @@ def dynamicGetModel(model_input):
     model_input: Model | DPG Listbox | str; some form of identifying information of a model.
     """
     # get model list
-    models = getModels(get_machines = False, get_configs = False)
+    models = getModels(get_machines = True, get_configs = True)
     # test if input is already a model
     if not (isinstance(model_input, Model.Model)):
         # find the actual model object
@@ -439,7 +439,6 @@ def dynamicGetModel(model_input):
             curr = models[i]
             # do the model names match?
             try:
-                # attempt with input as a DPG Listbox
                 if curr.name == dpg.get_value(model_input):
                     # return the current model
                     return curr
@@ -453,243 +452,99 @@ def dynamicGetModel(model_input):
         return model_input
 
 # return a machine object flexibly
-def dynamicGetMachine(machine_input):
+def dynamicGetMachine(machine_input, model = None):
     """
     Dynamically returns a machine object from a passed DPG listbox item or a string.
 
     machine_input: Machine | DPG Listbox | str; some form of identifying information of a machine.
+    model: (optional) Model; limits the search to a specific model object.
     """
-    # get model list
-    models = getModels(get_machines = True, get_configs = False)
+    # hold a machines list
+    machines = []
+    # if a model is passed
+    if not (model is None):
+        # search is limited to this model, use its machine list
+        machines = model.machines
+    # model limiter wasn't passed; search all models
+    else:
+        # get model list
+        models = getModels(get_machines = True, get_configs = True)
+        # for each model in the list
+        for curr_model in models:
+            # for each machine in the model's list
+            for machine in curr_model.machines:
+                # append this machine to the list
+                machines.append(machine)
     # test if input is already a machine
     if not (isinstance(machine_input, Machine.Machine)):
-        # for each model in the models list
-        for i in range(len(models)):
-            # save the current model
-            curr_model = models[i]
-            # for each machine in that model's machine list
-            for i in range(len(curr_model.machines)):
-                # save the current machine
-                curr_machine = curr_model.machines[i]
-                # do the machine names match?
-                try:
-                    # attempt with input as a DPG Listbox
-                    if curr_machine.name == dpg.get_value(machine_input):
-                        # return the current machine
-                        return curr_machine
-                # input isn't a dpg item, it must be a string
-                except Exception as ex:
-                    if str(curr_machine.name) == str(machine_input):
-                        # return the current machine
-                        return curr_machine
+        # for each machine in the machines list
+        for i in range(len(machines)):
+            # save the current machine
+            curr_machine = machines[i]
+            # do the machine names match?
+            try:
+                # attempt with input as a DPG Listbox
+                if curr_machine.name == dpg.get_value(machine_input):
+                    # return the current machine
+                    return curr_machine
+            # input isn't a dpg item, it must be a string
+            except Exception as ex:
+                if str(curr_machine.name) == str(machine_input):
+                    # return the current machine
+                    return curr_machine
     # the machine is already a machine, just return it
     else:
         return machine_input
 
 # return a config object flexibly
-def dynamicGetConfig(config_input):
+def dynamicGetConfig(config_input, machine = None):
     """
     Dynamically returns a config object from a passed DPG listbox item or a string.
 
     config_input: Config | DPG Listbox | str; some form of identifying information of a config.
+    machine: (optional) Machine; limits the search to a specific machine object.
     """
-    # get model list
-    models = getModels(get_machines = True, get_configs = True)
+    # hold a configs list
+    configs = []
+    # if a machine is passed
+    if not (machine is None):
+        # search is limited to this machine, use its config list
+        configs = machine.mapping_configurations
+    # machine limiter wasn't passed; search all machines
+    else:
+        # get model list
+        models = getModels(get_machines = True, get_configs = True)
+        # for each model in the list
+        for curr_model in models:
+            # for each machine in the model's list
+            for curr_machine in curr_model.machines:
+                # for each config in the machine's list
+                for curr_config in curr_machine.mapping_configurations:
+                    # append this config to the list
+                    configs.append(curr_config)
     # test if input is already a config
     if not (isinstance(config_input, MappingConfiguration.MappingConfiguration)):
-        # for each model in the models list
-        for i in range(len(models)):
-            # save the current model
-            curr_model = models[i]
-            # for each machine in that model's machine list
-            for i in range(len(curr_model.machines)):
-                # save the current machine
-                curr_machine = curr_model.machines[i]
-                # for each config in that machine's config list
-                for i in range(len(curr_machine.mapping_configurations)):
-                    # save the current config
-                    curr_config = curr_machine.mapping_configurations[i]
-                    # do the config ids match?
-                    try:
-                        # attempt with input as a DPG Listbox
-                        if curr_config.id_num == dpg.get_value(config_input):
-                            # return the current config
-                            return curr_config
-                    # input isn't a dpg item, it must be a string
-                    except Exception as ex:
-                        if str(curr_config.id_num) == str(config_input):
-                            # return the current config
-                            return curr_config
+        # for each config in that machine's config list
+        for i in range(len(configs)):
+            # save the current config
+            curr_config = configs[i]
+            # do the config ids match?
+            try:
+                # attempt with input as a DPG Listbox
+                if curr_config.id_num == dpg.get_value(config_input):
+                    # return the current config
+                    return curr_config
+            # input isn't a dpg item, it must be a string
+            except Exception as ex:
+                if str(curr_config.id_num) == str(config_input):
+                    # return the current config
+                    return curr_config
     # the config is already a config, just return it
     else:
         return config_input
 
-#### POSSIBLY OBSOLETE AFTER OOP OVERHAUL
-# # open a specific machine mapping file
-# def openMachineConfiguration(machine_name):
-#     """openMachineConfiguration
-    
-#     machine_name: str; name of the machine object.
-    
-#     Opens the passed machine's configuration .json file.
 
-#     -> Machine_file
-#     """
-#     # create path to mapping config files
-#     path = os.path.join(sys_env_dir, "config", "mapping configurations")
-#     # add route to model folder
-#     path = os.path.join(path, str(machine_name[:3]))
-#     # add route to machine .json file
-#     path = os.path.join(path, str(machine_name) + ".json")
-#     # open the file
-#     File = open(os.path.abspath(path), 'r')
-#     # read the file
-#     Machine_file = File.read()
-#     # close
-#     File.close()
-#     # convert from JSON to Py Dict
-#     Machine_file = loads(Machine_file)
-#     # return the machine file
-#     return Machine_file
-
-# # gets a model in the KIM Interface config by a passed dpg id
-# def getModelObject(ModelItem):
-#     """getModelObject(ModelItem)
-    
-#     ModelItem: model; [int, str]:DPG Item; str:ModelName; 
-#         the key to search Models by.
-
-#     Returns a model Object from the KIM Interface config files.
-
-#     -> [model]
-#     """
-#     # first see if the passed item is a  (model Object)
-#     if type(ModelItem) == 
-#         # return the object
-#         return ModelItem
-#     # not a model object, test as DPG
-#     else:
-#         try:
-#             # get the passed item's value
-#             temp = dpg.get_value(ModelItem)
-#             # if the item was a valid DPG item, it will return some value
-#             if not (temp is None):
-#                 # set the model name
-#                 model = dpg.get_value(ModelItem)
-#             # otherwise assume the input was actually a model name (string)
-#             else:
-#                 # assume the input was actually a model name (str)
-#                 model = ModelItem
-#         # there was an issue getting DPG value
-#         except Exception as ex:
-#             # warn in console
-#             print("Error: " + str(ex) + "; Defaulting to model Object as: " + str(model))
-#         # get the full Models list from KIM Interface config
-#     models = getModels()
-#     # find the model in the list
-#     for curr_model in models:
-#         # if the names match
-#         if curr_model['model_name'] == model:
-#             # set the return model as the matching model
-#             model = curr_model
-#             break
-#     # return the selected model
-#     return model
-
-# # gets a machine in the KIM Interface config by a passed dpg id
-# def getMachineObject(MachineItem):
-#     """getMachineObject(MachineItem)
-    
-#     MachineItem: machine; [int, str]:DPG Item; str:MachineName; 
-#         the key to search Machines by.
-
-#     Returns a machine Object from the KIM Interface config files.
-
-#     -> [machine]
-#     """
-#     # first see if the passed item is a  (machine Object)
-#     if type(MachineItem) == 
-#         # return the object
-#         return MachineItem
-#     # not a machine object, test as DPG
-#     else:
-#         try:
-#             # get the passed item's value
-#             temp = dpg.get_value(MachineItem)
-#             # if the item was a valid DPG item, it will return some value
-#             if not (temp is None):
-#                 # set the machine name
-#                 machine = dpg.get_value(MachineItem)
-#             # otherwise assume the input was actually a machine name (string)
-#             else:
-#                 # assume the input was actually a machine name (str)
-#                 machine = MachineItem
-#         # there was an issue getting DPG value
-#         except Exception as ex:
-#             # assume the input was actually a machine name (str)
-#             machine = MachineItem
-#             # warn in console
-#             print("Error: " + str(ex) + "; Defaulting to machine Object as: " + str(machine))
-#         # get the full Machines list from KIM Interface config
-#     machines = getMachines()
-#     # find the machine in the list
-#     for curr_machine in machines:
-#         # if the names match
-#         if curr_machine['name'] == machine:
-#             # set the return machine as the matching machine
-#             machine = curr_machine
-#             break
-#     # return the selected machine
-#     return machine
-
-# # gets a mapping configuration in the config file by machine and ID
-# def getConfigObject(machine, ConfigItem):
-#     """getConfigObject(machine, ConfigItem)
-    
-#     machine: machine; the machine object owning the config.
-#     ConfigItem: config; [int, str]:DPG Item; str:ConfigName; 
-#         the key to search Configs by.
-
-#     Returns a config Object from the passed machine's configuration file.
-
-#     -> [Config]
-#     """
-#     # if the input is a config object
-#     if type(ConfigItem) == 
-#         # set the id as the config object's id
-#         return ConfigItem
-#     # id_input is not an object
-#     else:
-#         # try treating the input as a DPG item
-#         try:
-#             # get the item value
-#             temp = dpg.get_value(ConfigItem)
-#             # if the item was a valid DPG item, it will return some value
-#             if not (temp is None):
-#                 # set the config name
-#                 config = dpg.get_value(ConfigItem)
-#             # otherwise assume the input was actually a config ID (string)
-#             else:
-#                 # assume the input was actually a config ID (str)
-#                 config = ConfigItem
-#         # failed to get the item value
-#         except Exception:
-#             # passed ID wasn't a DPG item
-#             pass
-#             # the id is a string, set the ID to the value 
-#             config = str(ConfigItem)
-#     # get the machine file
-#     machine_file = openMachineConfiguration(machine['name'])
-#     # for each mapping in the machine's config
-#     for curr_map in machine_file['mappings']:
-#         # check the IDs against each other
-#         if str(curr_map['id']) == config:
-#             # pull that config object
-#             config = curr_map
-#             break
-#     # return config
-#     return config
-
+### Validation Functions
 # validates the input of an ADDED config
 def validateAddConfigInput(model, machine, new_id, info_checks, measurement_checks, 
     info_maps, measurement_maps):
@@ -1378,7 +1233,7 @@ def commitConfigEdits(sender, app_data, user_data):
                 + "ID # " + str(config['id']) + " have been saved.")
             # add an Okay button
             dpg.add_button(label = "Okay!", pos = [125, 100], width = 150, height = 25,
-                callback = viewConfig, user_data = ["viewConfig", model, machine, config])
+                callback = viewConfig, user_data = [model, machine, config])
 
 # add a new configuration to the mappings files
 def commitConfigAdd(sender, app_data, user_data):
@@ -1459,7 +1314,7 @@ def commitConfigAdd(sender, app_data, user_data):
                 + "\nfor " + machine['name'] + " has been added.")
             # add an Okay button
             dpg.add_button(label = "Okay!", pos = [125, 100], width = 150, height = 25,
-                callback = viewConfig, user_data = ["viewConfig", model, machine, config])
+                callback = viewConfig, user_data = [model, machine, config])
 
 # duplicates a config in the mapping configurations file
 def commitConfigDuplicate(sender, app_data, user_data):
@@ -1551,7 +1406,7 @@ def commitConfigDuplicate(sender, app_data, user_data):
             + "\nfor " + machine['name'] + " has been created.")
         # add an Okay button
         dpg.add_button(label = "Okay!", pos = [125, 100], width = 150, height = 25,
-            callback = viewConfig, user_data = ["viewConfig", model, machine, config])
+            callback = viewConfig, user_data = [model, machine, config])
 
 # removes a config from the mapping configurations file
 def commitConfigRemove(sender, app_data, user_data):
@@ -1894,12 +1749,10 @@ def duplicateConfig(sender, app_data, user_data):
 
 # view config flow
 def viewConfig(sender, app_data, user_data):
-    """viewConfig(user_data = [continueCode, model, machine, config])
+    """viewConfig(user_data = [model, machine, config])
 
     SelectConfigWindow -> ViewConfigWindow
 
-    continueCode: str; the continue code that dictates the next window to open;
-        the current action flow of the program.
     model: model; the model owning the machine that is being viewed.
     machine: machine; the machine owning the viewed config.
     config: config; the config being viewed.
@@ -1907,14 +1760,12 @@ def viewConfig(sender, app_data, user_data):
     Invokes the UI flow from the SelectConfigWindow to the ViewConfigWindow.
     Invoked by the selection of a config or the menu bar.
     """
-    # get continue code
-    continueCode = user_data[0]
     # get the model
-    model = user_data[1]
+    model = user_data[0]
     # get machine 
-    machine = user_data[2]
+    machine = user_data[1]
     # get the config from the selected ID
-    config = getConfigObject(machine, user_data[3])
+    config = dynamicGetConfig(user_data[2], machine)
     # clear windows
     clearWindowRegistry()
     # enable the ViewConfigWindow
@@ -1928,14 +1779,14 @@ def viewConfig(sender, app_data, user_data):
         dpg.add_button(label = "<- ... / Select a Configuration / View Configuration...",
             callback = selectModel, user_data = ["viewConfig"], pos = [10, 25])
         # add a config ID label
-        dpg.add_text("Configuration ID #: " + config['id'] + "\nfor " + machine['name'], 
+        dpg.add_text("Configuration ID #: " + str(config.id_num) + "\nfor " + machine.name, 
             pos = [75, 100])
         # add a mapping list
         dpg.add_text("Cluster Mappings:", pos = [75, 200])
         # set a positional offset
         pos_offset = 1
         # for each mapping in the list
-        for curr_mapping in config['configuration']:
+        for curr_mapping in config.mappings:
             # add a text item for that field
             dpg.add_text("-   " + str(curr_mapping['item']) + "; sheet #" + str(curr_mapping['sheet']) 
                 + "; cluster #" + str(curr_mapping['cluster']), pos = [80, 200 + (pos_offset * 25)])
@@ -1972,7 +1823,7 @@ def selectConfig(sender, app_data, user_data):
     # get machine
     machine = user_data[2]
     # find the actual machine object
-    machine = dynamicGetMachine(machine)
+    machine = dynamicGetMachine(machine, model)
     # clear windows
     clearWindowRegistry(["selectModelWindow", "selectMachineWindow"])
     # create a SelectMapping window
@@ -2015,7 +1866,7 @@ def selectConfig(sender, app_data, user_data):
                 # set the callback to view config
                 dpg.set_item_callback(SelectConfigButton, viewConfig)
             # set the button's user data
-            dpg.set_item_user_data(SelectConfigButton, [continueCode, model, machine, ConfigListbox])
+            dpg.set_item_user_data(SelectConfigButton, [model, machine, ConfigListbox])
             
 
 ## MACHINE UI CALLBACKS
@@ -2151,7 +2002,7 @@ def commitMachineEdits(sender, app_data, user_data):
             dpg.add_text("Your edits to " + machine['name'] + "\nhave been saved.")
             # add an Okay button
             dpg.add_button(label = "Okay!", pos = [125, 100], width = 150, height = 25,
-                callback = viewMachine, user_data = ["viewMachine", model, machine])
+                callback = viewMachine, user_data = [model, machine])
 
 # adds a new machine to the KIM Interface configuration file
 def commitMachineAdd(sender, app_data, user_data):
@@ -2232,7 +2083,7 @@ def commitMachineAdd(sender, app_data, user_data):
                 + "\nfor " + model['model_name'] + " has been added.")
             # add an Okay button
             dpg.add_button(label = "Okay!", pos = [125, 100], width = 150, height = 25,
-                callback = viewMachine, user_data = ["viewMachine", model, machine])
+                callback = viewMachine, user_data = [model, machine])
 
 # removes a machine from the KIM Interface configuration file
 def commitMachineRemove(sender, app_data, user_data):
@@ -2490,7 +2341,7 @@ def addMachine(sender, app_data, user_data):
 
 # remove machine flow
 def removeMachine(sender, app_data, user_data):
-    """viewMachine(user_data = continueCode, model, machine)
+    """removeMachine(user_data = continueCode, model, machine)
     
     ViewMachineWindow -> RemoveMachineWindow
     
@@ -2570,26 +2421,23 @@ def editMachine(sender, app_data, user_data):
 
 # view machine flow
 def viewMachine(sender, app_data, user_data):
-    """viewMachine(user_data = continueCode, model, machine)
+    """viewMachine(user_data = model, machine)
 
     SelectMachineWindow -> ViewMachineWindow
     
-    continueCode: str; continue code correspdonding to the action being performed.
     model: model; model Object owning the viewed machine.
     machine: machine; machine Object being viewed.
     
     Invokes the UI flow from the SelectMachineWindow to the ViewMachineWindow.
     Invoked by the selection of a machine or the menu bar.
     """
-    # get continue code
-    continueCode = user_data[0]
     # get model
-    model = user_data[1]
+    model = user_data[0]
     # get machine
-    machine = getMachineObject(user_data[2])
+    machine = dynamicGetMachine(user_data[1], model)
     # clear windows
     clearWindowRegistry()
-    # eneable the ViewMachineWindow
+    # enable the ViewMachineWindow
     ViewMachineWindow = dpg.window(tag = "viewMachineWindow", pos = [0, 0], width = 1280, height = 720,
         no_move = True, no_close = True, no_collapse = True, no_title_bar = False, show = True)
     # add items to the ViewMachineWindow
@@ -2600,15 +2448,15 @@ def viewMachine(sender, app_data, user_data):
         dpg.add_button(label = "<- ... / Select a Machine / View Machine...",
             callback = selectModel, user_data = ["viewMachine"], pos = [10, 25])
         # add a machine name label
-        dpg.add_text("Machine name: " + machine['name'], pos = [75, 100])
+        dpg.add_text("Machine name: " + machine.name, pos = [75, 100])
         # add a measurement list
         dpg.add_text("Machine Measurements:", pos = [75, 200])
         # set a positional offset
         pos_offset = 1
         # for each measurement field in the list
-        for meas in machine['measurements']:
+        for meas in machine.measurements:
             # add a text item for that field
-            dpg.add_text("-   " + str(meas), pos = [80, 200 + (pos_offset * 25)])
+            dpg.add_text("-   " + meas, pos = [80, 200 + (pos_offset * 25)])
             # increment positional offset
             pos_offset += 1
         # add machine Actions side panel
@@ -2692,7 +2540,7 @@ def selectMachine(sender, app_data, user_data):
                     # set the callback to view machine
                     dpg.set_item_callback(SelectMachineButton, viewMachine)
                 # set the button's user data
-                dpg.set_item_user_data(SelectMachineButton, [continueCode, model, MachineListbox])          
+                dpg.set_item_user_data(SelectMachineButton, [model, MachineListbox])          
 
 
 ## MODEL UI CALLBACKS
@@ -3253,9 +3101,9 @@ def viewModel(sender, app_data, user_data):
         # set a positional offset
         pos_offset = 1
         # for each field in the base info list
-        for info in model.base_information:
+        for i in range(len(model.base_information)):
             # add a text item for that field
-            dpg.add_text("-   " + str(info), pos = [80, 200 + (pos_offset * 25)])
+            dpg.add_text("-   " + model.base_information[i], pos = [80, 200 + (pos_offset * 25)])
             # increment positional offset
             pos_offset += 1
         # add a machine list
@@ -3263,9 +3111,9 @@ def viewModel(sender, app_data, user_data):
         # set a positional offset
         pos_offset = 1
         # for each machine in the machine list
-        for machine in model.machines:
+        for i in range(len(model.machines)):
             # add a text item for that machine
-            dpg.add_text("-   " + str(machine['name']), pos = [400, 200 + (pos_offset * 25)])
+            dpg.add_text("-   " + model.machines[i].name, pos = [400, 200 + (pos_offset * 25)])
             # increment positional offset
             pos_offset += 1
         # add model Actions side panel
