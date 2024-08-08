@@ -957,11 +957,11 @@ def validateAddModelInput(model_name, base_information):
         # valid name was entered
         else:
             # get the model list
-            models = getModels()
+            models = getModels(get_machines = False, get_configs = False)
             # check that the name is unique
             for curr_model in models:
                 # if the model names match
-                if curr_model['model_name'] == model_name:
+                if curr_model.name == model_name:
                     # overlapping names, not unique
                     return [False, 
                         {"error":"Model names must be unique.\n"
@@ -986,11 +986,11 @@ def validateAddModelInput(model_name, base_information):
         # the input box was empty, omit this input
         continue
     # if here, the model information can make a model Object
-    model = {"model_name":model_name, "model_base_information":[], "model_machines":[]}
+    model = Model(name = model_name, base_information = [], machines = [])
     # add each base information to the base information list
     for info in info_list:
         # add the item
-        model['model_base_information'].append(info)
+        model.base_information.append(info)
     # return the model
     return [True, model]  
 
@@ -2634,20 +2634,17 @@ def commitModelEdits(sender, app_data, user_data):
 # adds a new model to the KIM Interface config
 def commitModelAdd(sender, app_data, user_data):
     """
-    commitModelAdd(user_data = continueCode, model_name, model_base_info)
+    commitModelAdd(user_data = model_name, model_base_info)
 
-    continueCode: str; continue code correspdonding to the action being performed.
     model_name: DPG Input Box; DPG Item holding the new model name.
     model_base_info: [DPG Input boxes]; Input boxes holding the new model 
         base information headers.
 
     Adds a new model in the KIM Interface config."""
-    # get continue code
-    continueCode = user_data[0]
     # get model name
-    model_name = dpg.get_value(user_data[1])
+    model_name = dpg.get_value(user_data[0])
     # get the base information list
-    model_base_info = user_data[2]
+    model_base_info = user_data[1]
     # validate the new model input
     validation = validateAddModelInput(model_name, model_base_info)
     # check that it was valid
@@ -2657,17 +2654,15 @@ def commitModelAdd(sender, app_data, user_data):
     # valid model input
     else:
         # input was valid, continue
-        NewModel = validation[1]
+        new_model = validation[1]
         # add the new model to the KIM Interface config file (open KIM Interface config)
         Interface_Config_File = openConfigFile()
         # add the new model to the models list
-        Interface_Config_File['models'].append(NewModel)
+        Interface_Config_File['models'].append(Model.modelToDict(new_model))
         # overwrite the KIM Interface config file
-        overwriteConfigFile(Interface_Config_File, "Add Model: " + str(NewModel['model_name']))
-        # add folder in mapping configurations to hold this model's machine config files
-        os.mkdir(os.path.join(sys_env_dir, "config", "mapping configurations", NewModel['model_name']))
+        overwriteConfigFile(Interface_Config_File, "Add Model: " + new_model.name)
         # update model object in runtime memory
-        model = getModelObject(NewModel['model_name'])
+        model = new_model
         # clear the Popup alias
         clearWindow("confirmPopup")
         # create the confirmation popup
@@ -2679,8 +2674,7 @@ def commitModelAdd(sender, app_data, user_data):
         with Popup:
             # add a success message
             dpg.add_text("Success:", color = [150, 150, 255])
-            dpg.add_text("Your new model " + model['model_name'] 
-                + "\nhas been added.")
+            dpg.add_text("Your new model " + str(model) + " has been added.")
             # add an Okay button
             dpg.add_button(label = "Okay!", pos = [125, 100], width = 150, height = 25,
                 callback = viewModel, user_data = [model])
@@ -2849,17 +2843,13 @@ def addModelInfoField(sender, app_data, user_data):
 
 # add model flow
 def addModel(sender, app_data, user_data):
-    """addModel(user_data = continueCode)
-
-    continueCode: str; continue code correspdonding to the action being performed.
+    """addModel(user_data = [])
 
     StartupWindow -> AddModelWindow
 
     Invokes the UI flow from the StartupWindow to the AddModelWindow.
     Invoked by the menu bar.
     """
-    # get continue code
-    continueCode = user_data[0]
     # clear windows
     clearWindowRegistry()
     # create the AddModelWindow
@@ -2874,16 +2864,16 @@ def addModel(sender, app_data, user_data):
             callback = returnToStartup)
         # add model text label
         dpg.add_text("Add a new Model for the KIM Interface to use.\n"
-            + "-  Each model has a set of base information;\n"
-            + "   this base information is added to each machine.\n"
+            + "-  Each Model has a set of base information;\n"
+            + "   this base information is added to each Machine.\n"
             + "-  Model names must be unique.", pos = [75, 100])
         # enter model name label
-        dpg.add_text("Enter the new model name:", pos = [75, 200])
+        dpg.add_text("Enter the new Model name:", pos = [75, 200])
         # model name entry box
         ModelNameEntry = dpg.add_input_text(width = 200, pos = [75, 225], hint = "Model name...")
         # add base information setting panel
         # add base info panel label
-        dpg.add_text("Enter model base information (non-measurement column headers):", pos = [400, 200])
+        dpg.add_text("Enter Model base information (non-measurement column headers):", pos = [400, 200])
         # add 15 base info field entries
         # set positional offset
         pos_offset = 1
@@ -2903,16 +2893,16 @@ def addModel(sender, app_data, user_data):
         # set positional offset
         pos_offset = 1
         # pull models from KIM Interface config
-        models = getModels()
+        models = getModels(get_machines = False, get_configs = False)
         # for each model in KIM Interface config
         for curr_model in models:
             # add this name to the window
-            dpg.add_text(str(curr_model['model_name']), pos = [1000, 200 + (pos_offset * 25)])
+            dpg.add_text(str(curr_model.name), pos = [1000, 200 + (pos_offset * 25)])
             # increment the positional offset
             pos_offset += 1
         # add the Add New model button
         dpg.add_button(label = "Add new Model...", width = 270, pos = [50, 600],
-            callback = commitModelAdd, user_data = ["addModel", ModelNameEntry, base_information_entries])
+            callback = commitModelAdd, user_data = [ModelNameEntry, base_information_entries])
 
 # remove model flow
 def removeModel(sender, app_data, user_data):
@@ -3673,7 +3663,7 @@ with MenuBar:
         dpg.add_menu_item(label = "Machine",
             callback = selectModel, user_data = ["addMachine"])
         dpg.add_menu_item(label = "Model",
-            callback = addModel, user_data = ["addModel"])
+            callback = addModel)
     with EditMenu:
         # add necessary items (config, machine, model)
         dpg.add_menu_item(label = "Mapping Configuration", 
