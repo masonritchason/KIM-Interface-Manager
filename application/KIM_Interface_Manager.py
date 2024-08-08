@@ -421,6 +421,109 @@ def showWarningPopup(warning_message):
             callback = deleteItem, user_data = ["warningPopup"])
 
 
+### Object-Returning Functions
+# return a model object flexibly
+def dynamicGetModel(model_input):
+    """
+    Dynamically returns a model object from a passed DPG listbox item or a string.
+
+    model_input: Model | DPG Listbox | str; some form of identifying information of a model.
+    """
+    # get model list
+    models = getModels(get_machines = False, get_configs = False)
+    # test if input is already a model
+    if not (isinstance(model_input, Model.Model)):
+        # find the actual model object
+        for i in range(len(models)):
+            # save the current model
+            curr = models[i]
+            # do the model names match?
+            try:
+                # attempt with input as a DPG Listbox
+                if curr.name == dpg.get_value(model_input):
+                    # return the current model
+                    return curr
+            # input isn't a dpg item, it must be a string
+            except Exception as ex:
+                if str(curr.name) == str(model_input):
+                    # return the current model
+                    return curr
+    # the model is already a model, just return it
+    else:
+        return model_input
+
+# return a machine object flexibly
+def dynamicGetMachine(machine_input):
+    """
+    Dynamically returns a machine object from a passed DPG listbox item or a string.
+
+    machine_input: Machine | DPG Listbox | str; some form of identifying information of a machine.
+    """
+    # get model list
+    models = getModels(get_machines = True, get_configs = False)
+    # test if input is already a machine
+    if not (isinstance(machine_input, Machine.Machine)):
+        # for each model in the models list
+        for i in range(len(models)):
+            # save the current model
+            curr_model = models[i]
+            # for each machine in that model's machine list
+            for i in range(len(curr_model.machines)):
+                # save the current machine
+                curr_machine = curr_model.machines[i]
+                # do the machine names match?
+                try:
+                    # attempt with input as a DPG Listbox
+                    if curr_machine.name == dpg.get_value(machine_input):
+                        # return the current machine
+                        return curr_machine
+                # input isn't a dpg item, it must be a string
+                except Exception as ex:
+                    if str(curr_machine.name) == str(machine_input):
+                        # return the current machine
+                        return curr_machine
+    # the machine is already a machine, just return it
+    else:
+        return machine_input
+
+# return a config object flexibly
+def dynamicGetConfig(config_input):
+    """
+    Dynamically returns a config object from a passed DPG listbox item or a string.
+
+    config_input: Config | DPG Listbox | str; some form of identifying information of a config.
+    """
+    # get model list
+    models = getModels(get_machines = True, get_configs = True)
+    # test if input is already a config
+    if not (isinstance(config_input, MappingConfiguration.MappingConfiguration)):
+        # for each model in the models list
+        for i in range(len(models)):
+            # save the current model
+            curr_model = models[i]
+            # for each machine in that model's machine list
+            for i in range(len(curr_model.machines)):
+                # save the current machine
+                curr_machine = curr_model.machines[i]
+                # for each config in that machine's config list
+                for i in range(len(curr_machine.mapping_configurations)):
+                    # save the current config
+                    curr_config = curr_machine.mapping_configurations[i]
+                    # do the config ids match?
+                    try:
+                        # attempt with input as a DPG Listbox
+                        if curr_config.id_num == dpg.get_value(config_input):
+                            # return the current config
+                            return curr_config
+                    # input isn't a dpg item, it must be a string
+                    except Exception as ex:
+                        if str(curr_config.id_num) == str(config_input):
+                            # return the current config
+                            return curr_config
+    # the config is already a config, just return it
+    else:
+        return config_input
+
 #### POSSIBLY OBSOLETE AFTER OOP OVERHAUL
 # # open a specific machine mapping file
 # def openMachineConfiguration(machine_name):
@@ -1869,19 +1972,7 @@ def selectConfig(sender, app_data, user_data):
     # get machine
     machine = user_data[2]
     # find the actual machine object
-    for i in range(len(model.machines)):
-        # save the current machine
-        curr = model.machines[i]
-        # do the model names match?
-        try:
-            if curr.name == dpg.get_value(machine):
-                # update the machine object
-                machine = curr
-        # machine isn't a dpg item, it must be a machine object
-        except Exception as ex:
-            if curr.name == machine.name:
-                # update the machine object
-                machine = curr
+    machine = dynamicGetMachine(machine)
     # clear windows
     clearWindowRegistry(["selectModelWindow", "selectMachineWindow"])
     # create a SelectMapping window
@@ -2532,11 +2623,10 @@ def viewMachine(sender, app_data, user_data):
 
 # select machine flow
 def selectMachine(sender, app_data, user_data):
-    """selectMachine(user_data = continueCode, model, models)
+    """selectMachine(user_data = continueCode, model)
 
     continueCode: str; continue code correspdonding to the action being performed.
     model: model; model Object being selected from.
-    models: [model]; List of model objects pulled from the model selection window.
 
     StartupWindow -> SelectMachineWindow
     
@@ -2547,19 +2637,8 @@ def selectMachine(sender, app_data, user_data):
     continueCode = user_data[0]
     # get model & models list
     model = user_data[1]
-    models = user_data[2]
     # find the actual model object
-    for i in range(len(models)):
-        # do the model names match?
-        try:
-            if models[i].name == dpg.get_value(model):
-                # update the model object
-                model = models[i]
-        # model isn't a dpg item, it must be a model object
-        except Exception as ex:
-            if models[i].name == model.name:
-                # update the model object
-                model = models[i]
+    model = dynamicGetModel(model)
     # clear windows
     clearWindowRegistry(["selectModelWindow"])
     # create a SelectMachine window
@@ -2762,7 +2841,7 @@ def commitModelEdits(sender, app_data, user_data):
             dpg.add_text("Your edits to " + model['model_name'] + "\nhave been saved.")
             # add an Okay button
             dpg.add_button(label = "Okay!", pos = [125, 100], width = 150, height = 25,
-                callback = viewModel, user_data = ["viewModel", model])
+                callback = viewModel, user_data = [model])
 
 # adds a new model to the KIM Interface config
 def commitModelAdd(sender, app_data, user_data):
@@ -2816,7 +2895,7 @@ def commitModelAdd(sender, app_data, user_data):
                 + "\nhas been added.")
             # add an Okay button
             dpg.add_button(label = "Okay!", pos = [125, 100], width = 150, height = 25,
-                callback = viewModel, user_data = ["viewModel", model])
+                callback = viewModel, user_data = [model])
 
 # removes a model from the KIM Interface configuration file
 def commitModelRemove(sender, app_data, user_data):
@@ -3144,9 +3223,8 @@ def editModel(sender, app_data, user_data):
 
 # view model flow
 def viewModel(sender, app_data, user_data):
-    """viewModel(user_data = continueCode, model)
+    """viewModel(user_data = model)
 
-    continueCode: str; continue code correspdonding to the action being performed.
     model: model; model being viewed.
 
     SelectModelWindow -> ViewModelWindow
@@ -3154,10 +3232,8 @@ def viewModel(sender, app_data, user_data):
     Invokes the UI flow from the SelectModelWindow to the ViewModelWindow.
     Invoked by the selection of a model or the menu bar.
     """
-    # get continue code
-    continueCode = user_data[0]
     # get info from user data
-    model = getModelObject(user_data[1])
+    model = dynamicGetModel(user_data[0])
     # clear windows
     clearWindowRegistry()
     # eneable the ViewModelWindow
@@ -3171,13 +3247,13 @@ def viewModel(sender, app_data, user_data):
         dpg.add_button(label = "<- ... / Select a Model / View Model...",
             callback = selectModel, user_data = ["viewModel"], pos = [10, 25])
         # add a model name label
-        dpg.add_text("Model name: " + model['model_name'], pos = [75, 100])
+        dpg.add_text("Model name: " + model.name, pos = [75, 100])
         # add a base information list
         dpg.add_text("Model Base Information:", pos = [75, 200])
         # set a positional offset
         pos_offset = 1
         # for each field in the base info list
-        for info in model['model_base_information']:
+        for info in model.base_information:
             # add a text item for that field
             dpg.add_text("-   " + str(info), pos = [80, 200 + (pos_offset * 25)])
             # increment positional offset
@@ -3187,9 +3263,9 @@ def viewModel(sender, app_data, user_data):
         # set a positional offset
         pos_offset = 1
         # for each machine in the machine list
-        for machine in model['model_machines']:
+        for machine in model.machines:
             # add a text item for that machine
-            dpg.add_text("-   " + machine, pos = [400, 200 + (pos_offset * 25)])
+            dpg.add_text("-   " + str(machine['name']), pos = [400, 200 + (pos_offset * 25)])
             # increment positional offset
             pos_offset += 1
         # add model Actions side panel
@@ -3256,7 +3332,7 @@ def selectModel(sender, app_data, user_data):
                 # set the model list callback
                 dpg.set_item_callback(ModelListbox, selectMachine)
                 # set the ModelListbox user data
-                dpg.set_item_user_data(ModelListbox, [continueCode, ModelListbox, models])
+                dpg.set_item_user_data(ModelListbox, [continueCode, ModelListbox])
             # otherwise don't use the SelectMachineWindow
             else:
                 # add a select model button
@@ -3279,7 +3355,7 @@ def selectModel(sender, app_data, user_data):
                     # add a select model button
                     dpg.set_item_callback(SelectModelButton, viewModel)
                 # set the button's user data
-                dpg.set_item_user_data(SelectModelButton, [continueCode, ModelListbox])
+                dpg.set_item_user_data(SelectModelButton, [ModelListbox])
 
 
 ## INFORMATION UI CALLBACKS
