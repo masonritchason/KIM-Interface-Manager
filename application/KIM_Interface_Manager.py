@@ -1487,7 +1487,7 @@ def commitConfigRemove(sender, app_data, user_data):
             + "\nfor " + machine['name'] + " has been removed.")
         # add an Okay button
         dpg.add_button(label = "Okay!", pos = [125, 100], width = 150, height = 25,
-            callback = selectModel, user_data = ["viewConfig"])
+            callback = selectModel, user_data = ["removeConfig"])
 
 # add config flow
 def addConfig(sender, app_data, user_data):
@@ -2151,7 +2151,7 @@ def commitMachineRemove(sender, app_data, user_data):
             + "\nhas been removed.")
         # add an Okay button
         dpg.add_button(label = "Okay!", pos = [125, 100], width = 150, height = 25,
-            callback = selectModel, user_data = ["viewMachine"])
+            callback = selectModel, user_data = ["removeMachine"])
 
 # updates the edit machine measurements subwindow
 def editMachineSubwindow(sender, app_data, user_data):
@@ -2717,7 +2717,7 @@ def commitModelRemove(sender, app_data, user_data):
         dpg.add_text("The " + str(model) + " has been removed.")
         # add an Okay button
         dpg.add_button(label = "Okay!", pos = [125, 100], width = 150, height = 25,
-            callback = selectModel, user_data = ["viewModel"])
+            callback = selectModel, user_data = ["removeModel"])
 
 # update the edit model information subwindow
 def editModelSubwindow(sender, app_data, user_data):
