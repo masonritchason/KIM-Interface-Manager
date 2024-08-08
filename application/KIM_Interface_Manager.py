@@ -18,7 +18,9 @@ from re import compile
 from shutil import copytree
 from datetime import datetime
 from webbrowser import open as web
-from classes import Model, Machine, MappingConfiguration
+from classes.Model import Model as Model
+from classes.Machine import Machine as Machine
+from classes.MappingConfiguration import MappingConfiguration as MappingConfiguration
 
 
 ### Global Definition Segmemt
@@ -348,7 +350,7 @@ def getConfigs(machine):
         # save the current config
         curr = machine.mapping_configurations[i]
         # create a config object
-        TempConfig = MappingConfiguration.MappingConfiguration(curr['id'], curr['mappings'], machine)
+        TempConfig = MappingConfiguration(curr['id'], curr['mappings'], machine)
         # append that object to the list
         configs.append(TempConfig)
     # return configs list
@@ -372,7 +374,7 @@ def getMachines(model, get_configs):
         # save the current machine
         curr = model.machines[i]
         # create a machine object
-        TempMachine = Machine.Machine(curr['name'], curr['measurements'], 
+        TempMachine = Machine(curr['name'], curr['measurements'], 
             curr['mapping_configurations'], model)
         # fix machine measurement character issues
         for j in range(len(TempMachine.measurements)):
@@ -412,7 +414,7 @@ def getModels(get_machines, get_configs):
         # save current model
         curr = models[i]
         # create a new model object
-        TempModel = Model.Model(curr['name'], curr['base_information'], curr['machines'])
+        TempModel = Model(curr['name'], curr['base_information'], curr['machines'])
         # if the get_machines flag is set
         if get_machines:
             # add the model's Machines to its Machines attribute
@@ -432,7 +434,7 @@ def dynamicGetModel(model_input):
     # get model list
     models = getModels(get_machines = True, get_configs = True)
     # test if input is already a model
-    if not (isinstance(model_input, Model.Model)):
+    if not (isinstance(model_input, Model)):
         # find the actual model object
         for i in range(len(models)):
             # save the current model
@@ -476,7 +478,7 @@ def dynamicGetMachine(machine_input, model = None):
                 # append this machine to the list
                 machines.append(machine)
     # test if input is already a machine
-    if not (isinstance(machine_input, Machine.Machine)):
+    if not (isinstance(machine_input, Machine)):
         # for each machine in the machines list
         for i in range(len(machines)):
             # save the current machine
@@ -523,7 +525,7 @@ def dynamicGetConfig(config_input, machine = None):
                     # append this config to the list
                     configs.append(curr_config)
     # test if input is already a config
-    if not (isinstance(config_input, MappingConfiguration.MappingConfiguration)):
+    if not (isinstance(config_input, MappingConfiguration)):
         # for each config in that machine's config list
         for i in range(len(configs)):
             # save the current config
@@ -996,8 +998,12 @@ def validateEditModelInput(model, new_name, prior_name, checks, inputs):
     
     -> [Boolean:result, model|Error]
     """
+    # debug
+    print("Validating edited Model name " + str(new_name) + " of type " + str(type(new_name)))
     # check that a name was entered
     if (not new_name) or (new_name is None):
+        # debug
+        print("Value " + str(new_name) + " is empty.")
         # no name entered
         return [False, 
             {"error":"Model names cannot be blank."}]
@@ -1019,13 +1025,13 @@ def validateEditModelInput(model, new_name, prior_name, checks, inputs):
         # valid name was entered
         else:
             # get the model list
-            models = getModels()
+            models = getModels(get_machines = True, get_configs = True)
             # check that the name is unique
             for curr_model in models:
                 # if the model names match
-                if curr_model['model_name'] == new_name:
+                if curr_model.name == new_name:
                     # if the match is with the prior model name
-                    if curr_model['model_name'] == prior_name:
+                    if curr_model.name == prior_name:
                         # this is okay, skip the match
                         continue
                     else:
@@ -1063,12 +1069,11 @@ def validateEditModelInput(model, new_name, prior_name, checks, inputs):
         # increment the index
         index += 1
     # if here, the model information can make a model Object
-    model = {"model_name":new_name, "model_base_information":[], 
-        "model_machines":model['model_machines']}
+    model = Model(name = new_name, base_information = [], machines = model.machines)
     # add each of the base information headers to the list
     for info in info_list:
         # add the item
-        model['model_base_information'].append(info)
+        model.base_information.append(info)
     # return the model
     return [True, model]
 
@@ -2548,10 +2553,9 @@ def selectMachine(sender, app_data, user_data):
 # makes an edit to a model in the KIM Interface config file
 def commitModelEdits(sender, app_data, user_data):
     """
-    commitModelEdits(user_data = continueCode, model, new_name, prior_name, 
+    commitModelEdits(user_data = model, new_name, prior_name, 
         base_info_checks, base_info_inputs)
 
-    continueCode: str; continue code correspdonding to the action being performed.
     model: model; model being edited.
     new_name: DPG Input Box; DPG Item holding the edited model name.
     prior_name: str; the model name before edits.
@@ -2561,18 +2565,16 @@ def commitModelEdits(sender, app_data, user_data):
         headers.
 
     Takes a model with edits and overwrites that model in the KIM Interface config."""
-    # get continue code
-    continueCode = user_data[0]
     # get model
-    model = getModelObject(user_data[1])
+    model = user_data[0]
     # get the edited model name
-    new_name = dpg.get_value(user_data[2])
+    new_name = dpg.get_value(user_data[1])
     # get the model name prior to edits
-    prior_name = user_data[3]
+    prior_name = user_data[2]
     # get the selected model information fields
-    checks = user_data[4]
+    checks = user_data[3]
     # get the base information header inputs
-    inputs = user_data[5]
+    inputs = user_data[4]
     # validate the edited model input
     validation = validateEditModelInput(model, new_name, prior_name, checks, inputs)
     # check that it was valid
@@ -2582,99 +2584,23 @@ def commitModelEdits(sender, app_data, user_data):
     # valid model input
     else:
         # input was valid, continue
-        EditedModel = validation[1]
-        # set a temp path to the old model name folder
-        temp_path = os.path.join(sys_env_dir, "config", "mapping configurations", model['model_name'])
-        # reflect edits to base info fields in configs
-        for root, dirs, files in os.walk(top = temp_path, topdown = False):
-            # for every machine configuration file
-            for file in files:
-                # open the machine file
-                File = open(os.path.join(root, file), 'r')
-                # read the file contents
-                machine_file = File.read()
-                # close the machine file
-                File.close()
-                # format the machine file as JSON
-                machine_file = loads(machine_file)
-                # create a list to hold the removed base information
-                removed_base = []
-                # calculate removed base info
-                for base in model['model_base_information']:
-                    # if this base info isnt in the EditedModel's list
-                    if base not in EditedModel['model_base_information']:
-                        # add the base infor to the removed list
-                        removed_base.append(base)
-                # for each config in the machine file
-                for config in machine_file['mappings']:
-                    # create a list to store removed mapping items
-                    removed_items = []
-                    # for each mapped Item in the Configuration
-                    for i in range(len(config['configuration'])):
-                        # if the current item in the mapped item list was removed
-                        if config['configuration'][i]['item'] in removed_base:
-                            # add this index value to the removed list
-                            removed_items.append(i)
-                    # reverse the list of removed indexes (remove from right to left (large to small index))
-                    removed_items.reverse()
-                    # for each index needing removed
-                    for index in removed_items:
-                        # remove that item by index
-                        config['configuration'].pop(index)
-                # timestamp the file
-                machine_file = timestamp(machine_file, str(machine_file['name']) + ".json", 
-                    "Edit Machine: " + str(machine_file['name']))
-                # format the new machine file text as JSON
-                machine_file = dumps(machine_file, indent = 4)
-                # overwrite the machine file
-                File = open(os.path.join(root, file), 'w')
-                # write the new JSON to the file
-                File.write(machine_file)
-                # close the machine file
-                File.close()
+        edited_model = validation[1]
         # open the KIM Interface config file
         Interface_Config_File = openConfigFile()
-        # hold the edited model's index
-        model_index = Interface_Config_File['models'].index(model)
-        # update machines to reflect the new model name
-        # first, update the machine names in the KIM Interface config file
-        index = 0
-        for machine in Interface_Config_File['machines']:
-            # do the machine names match
-            if machine['name'] in model['model_machines']:
-                # update the name
-                Interface_Config_File['machines'][index]['name'] = EditedModel['model_name'] + machine['name'][3:]
-            index += 1
-        # then update the machines in the model itself
-        index = 0
-        for machine in EditedModel['model_machines']:
-            # create the new machine name
-            new_machine_name = EditedModel['model_name'] + machine[3:]
-            # update the machine name in the model itself
-            EditedModel['model_machines'][index] = new_machine_name
-            index == 1
-        # update the edited model in KIM Interface config
-        Interface_Config_File['models'][model_index] = EditedModel
+        # if the model name has been changed
+        if edited_model.name != model.name:
+            # update the machine names in the model machine list
+            for machine in edited_model:
+                # change the first three characters to match the new model name
+                machine.name = edited_model.name + machine.name[3:]
+        # find the unedited model in the config file
+        model_index = Interface_Config_File['models'].index(Model.modelToDict(model))
+        # put the edited model in KIM Interface config
+        Interface_Config_File['models'][model_index] = Model.modelToDict(edited_model)
         # overwrite the KIM Interface config file
-        overwriteConfigFile(Interface_Config_File, "Edit Model: " + str(EditedModel['model_name']))
-        # set the directory with the old model name
-        old_model_folder = os.path.join(
-            sys_env_dir, "config", "mapping configurations", model['model_name'])
-        # set the directory with the new model name
-        new_model_folder = os.path.join(
-            sys_env_dir, "config", "mapping configurations", EditedModel['model_name'])
-        # update the model's folder in config folder
-        os.rename(old_model_folder, new_model_folder)
-        # finally update all of the machine config files in the model's folder
-        for root, dirs, files in os.walk(top = new_model_folder, topdown = False):
-            # rename the files
-            for file in files:
-                # rename file
-                os.rename(os.path.join(root, file),
-                    os.path.join(sys_env_dir, "config", "mapping configurations", 
-                    EditedModel['model_name'], EditedModel['model_name'] + file[3:]))
+        overwriteConfigFile(Interface_Config_File, "Edit Model: " + str(edited_model.name))
         # update the model object in runtime memory
-        model = getModelObject(EditedModel['model_name'])
+        model = edited_model
         # clear the Popup alias
         clearWindow("confirmPopup")
         # create the confirmation popup
@@ -2686,7 +2612,7 @@ def commitModelEdits(sender, app_data, user_data):
         with Popup:
             # add a success message
             dpg.add_text("Success:", color = [150, 150, 255])
-            dpg.add_text("Your edits to " + model['model_name'] + "\nhave been saved.")
+            dpg.add_text("Your edits to " + model.name + "\nhave been saved.")
             # add an Okay button
             dpg.add_button(label = "Okay!", pos = [125, 100], width = 150, height = 25,
                 callback = viewModel, user_data = [model])
@@ -2803,25 +2729,22 @@ def commitModelRemove(sender, app_data, user_data):
 
 # update the edit model information subwindow
 def editModelSubwindow(sender, app_data, user_data):
-    """updateEditModelSubwindow(user_data = [continueCode, model, checks, inputs])
+    """updateEditModelSubwindow(user_data = [model, checks, inputs])
 
     Subwindow segment of the EditModelWindow
 
-    continueCode: str; continue code correspdonding to the action being performed.
     model: model; model being edited.
     checks: [DPG Check Boxes]; list of edited selected model information headers.
     inputs: [DPG Input Boxes]; list of edited selected model information header maps.
 
     Allows for dynamic addition of model Base Information
     """
-    # get continue code
-    continueCode = user_data[0]
     # get the selected model
-    model = user_data[1]
+    model = user_data[0]
     # get the current checks list
-    checks = user_data[2]
+    checks = user_data[1]
     # get the current inputs list
-    inputs = user_data[3]
+    inputs = user_data[2]
     # clear windows
     clearWindowRegistry("editModelWindow")
     # create a new subwindow to show the model's base information
@@ -2842,7 +2765,7 @@ def editModelSubwindow(sender, app_data, user_data):
         dpg.add_button(tag = "addBaseInfoButton", label = "+ New Base Information Field", 
             pos = [175, 50], width = 225, callback = addModelInfoField)
         # for each field in the base info list
-        for info in model['model_base_information']:
+        for info in model.base_information:
             # add a text item for that field
             dpg.add_text("Edit Header:", pos = [75, 25 + (pos_offset * 25)])
             # add a checkbox to include that field
@@ -2868,8 +2791,8 @@ def editModelSubwindow(sender, app_data, user_data):
                     pos = [400, 50], color = [150, 150, 255])
         # add a Finish Editing button
         dpg.add_button(label = "Finish Editing Model...", width = 270, pos = [75, 500],
-            callback = commitModelEdits, user_data = ["editModel", model, "modelNameInput",
-                model['model_name'], base_info_checks, base_info_inputs])
+            callback = commitModelEdits, user_data = [model, "modelNameInput",
+                model.name, base_info_checks, base_info_inputs])
 
 def updateModelMidEdit(sender, app_data, user_data):
     """updateModelMidEdit(user_data = [model, new_base_info])
@@ -2881,21 +2804,24 @@ def updateModelMidEdit(sender, app_data, user_data):
     """
     # get the model
     model = user_data[0]
-    # get the new base information header
-    new_base_info = dpg.get_value(user_data[1])
+    # add the new base information header to the model
+    model.base_information.append(dpg.get_value(user_data[1]))
+    # convert the model to a dict
+    model_json = Model.modelToDict(model)
     # get the KIM Interface config file
     Interface_Config_File = openConfigFile()
-    # find the model in KIM Interface config
-    model_index = Interface_Config_File['models'].index(model)
-    # add a new information field to the model
-    model['model_base_information'].append(new_base_info)
-    # update the model in the KIM Interface config file
-    Interface_Config_File['models'][model_index] = model
+    # find the model in the config file
+    for i in range(len(Interface_Config_File['models'])):
+        # save the current model
+        curr_model = Interface_Config_File['models'][i]
+        # if the model names match
+        if curr_model['name'] == model.name:
+            # save the new model here
+            Interface_Config_File['models'][i] = model_json
     # overwrite the KIM Interface config file
-    overwriteConfigFile(Interface_Config_File, "Edit Model: " + str(model['model_name']))
+    overwriteConfigFile(Interface_Config_File, "Edit Model: " + model.name)
     # update the editModelSubwindow
-    editModelSubwindow(sender = "", app_data = "", 
-        user_data = ["editModel", model, [], []])
+    editModelSubwindow(sender = "", app_data = "", user_data = [model, [], []])
     # delete the popup
     deleteItem(sender = "", app_data = "", user_data = ["fieldValuePopup"])
 
@@ -3034,9 +2960,8 @@ def removeModel(sender, app_data, user_data):
 
 # edit model flow
 def editModel(sender, app_data, user_data):
-    """editModel(user_data = continueCode, model)
+    """editModel(user_data = model)
 
-    continueCode: str; continue code correspdonding to the action being performed.
     model: model; model being edited.
     
     ViewModelWindow -> EditModelWindow
@@ -3045,10 +2970,8 @@ def editModel(sender, app_data, user_data):
     Invoked by the selection of "Edit model" in ViewModelWindow;
     and from the main menu bar.
     """
-    # get continue code
-    continueCode = user_data[0]
     # get the selected model
-    model = getModelObject(user_data[1])
+    model = dynamicGetModel(user_data[0])
     # clear windows
     clearWindowRegistry()
     # eneable the EditModelWindow
@@ -3065,9 +2988,9 @@ def editModel(sender, app_data, user_data):
         dpg.add_text("Model Name:", pos = [75, 100])
         # add an input to edit the model name
         dpg.add_input_text(tag = "modelNameInput", pos = [160, 100], width = 200, 
-            default_value = model['model_name'])
+            default_value = model.name)
     # open the subwindow
-    editModelSubwindow(sender, app_data, user_data = [continueCode, model, [], []])
+    editModelSubwindow(sender, app_data, user_data = [model, [], []])
 
 # view model flow
 def viewModel(sender, app_data, user_data):
@@ -3120,7 +3043,7 @@ def viewModel(sender, app_data, user_data):
         dpg.add_text("Model Actions:", pos = [800, 200])
         # add action buttons
         dpg.add_button(label = "Edit this Model             ->", pos = [800, 225],
-            callback = editModel, user_data = ["editModel", model])
+            callback = editModel, user_data = [model])
         dpg.add_button(label = "Remove this Model           !!", pos = [800, 250],
             callback = removeModel, user_data = ["removeModel", model])
         dpg.add_button(label = "Add a Machine to this Model ->", pos = [800, 275],
@@ -3434,12 +3357,12 @@ def informationWindow(sender, app_data, user_data):
         dpg.add_text("Current Selected Machine: ", pos = [75, 150])
         # add current machine_name text object
         MachineNameText = dpg.add_text("Default", tag = "machineNameText",
-             color = [0, 255, 0], pos = [75, 175])
+            color = [0, 255, 0], pos = [75, 175])
         # add current mapping_config label
         dpg.add_text("Current Selected Mapping Configuration: ", pos = [75, 225])
         # add current mapping_config text object
         MappingConfigText = dpg.add_text("Default", tag = "mappingConfigText",
-             color = [0, 255, 0], pos = [75, 250])
+            color = [0, 255, 0], pos = [75, 250])
         # add runtime label
         dpg.add_text("Current Average Runtime:", pos = [75, 300])
         # add the text object that holds the current runtime avg
@@ -3683,11 +3606,11 @@ with StartupWindow:
     # add info text
     dpg.add_text("What can this software do?", pos = [10, 100])
     dpg.add_text("The KIM Interface Manager allows you to create, view,\n" +
-                 "customize, and remove mapping configurations, machines, and\n" +
-                 "models for the KIM Interface to use in i-Reporter forms.\n\n" + 
-                 "To add a new configuration, use the Top Menu to navigate\n" +
-                 "to the 'New...' menu and select 'Configuration'.", 
-                 pos = [10, 125])
+                "customize, and remove mapping configurations, machines, and\n" +
+                "models for the KIM Interface to use in i-Reporter forms.\n\n" + 
+                "To add a new configuration, use the Top Menu to navigate\n" +
+                "to the 'New...' menu and select 'Configuration'.", 
+                pos = [10, 125])
     # set temp path to the changelog.md file
     temp = os.path.join(sys_env_dir[:len(sys_env_dir) - 11], ".github", "CHANGELOG.md")
     # get the changelog.md text
