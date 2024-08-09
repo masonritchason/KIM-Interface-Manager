@@ -429,14 +429,10 @@ def dynamicGetModel(model_input):
 
     model_input: Model | DPG Listbox | str; some form of identifying information of a model.
     """
-    #debug
-    print("getModel: Trying value " + str(model_input) + " w/type: " + str(type(model_input)))
     # get model list
     models = getModels(get_machines = True, get_configs = True)
     # test if input is already a model
     if not (isinstance(model_input, Model)):
-        #debug
-        print("getModel: Value " + str(model_input) + " is not of Model Class type")
         # find the actual model object
         for i in range(len(models)):
             # save the current model
@@ -445,20 +441,12 @@ def dynamicGetModel(model_input):
             try:
                 if curr.name == dpg.get_value(model_input):
                     # return the current model
-                    #debug
-                    print("getModel: Value " + str(model_input) + " is of DPG Class type.")
                     return curr
             # input isn't a dpg item, it must be a string
             except Exception as ex:
-                #debug
-                print("getModel: Value " + str(model_input) + " is not of DPG Class type. Trying as string")
                 if str(curr.name) == str(model_input):
                     # return the current model
-                    #debug
-                    print("getModel: Value " + str(model_input) + " is of string type.")
                     return curr
-                #debug
-                print("getModel: Value " + str(model_input) + " is not of string type")
     # the model is already a model, just return it
     else:
         return model_input
@@ -1007,12 +995,8 @@ def validateEditModelInput(model, new_name, prior_name, checks, inputs):
     
     -> [Boolean:result, model|Error]
     """
-    # debug
-    print("Validating edited Model name " + str(new_name) + " of type " + str(type(new_name)))
     # check that a name was entered
     if (not new_name) or (new_name is None):
-        # debug
-        print("Value " + str(new_name) + " is empty.")
         # no name entered
         return [False, 
             {"error":"Model names cannot be blank."}]
@@ -2076,7 +2060,7 @@ def commitMachineRemove(sender, app_data, user_data):
     Interface_Config_File['models'][model_index]['machines'].remove(
         Machine.machineToDict(machine))
     # overwrite the KIM Interface config file
-    overwriteConfigFile(Interface_Config_File, "Remove Machine: " + str(machine['name']))
+    overwriteConfigFile(Interface_Config_File, "Remove Machine: " + machine.name)
     # clear the remove popup
     clearWindow("removeMachine")
     # clear the Popup alias
@@ -2304,7 +2288,7 @@ def removeMachine(sender, app_data, user_data):
     # get model
     model = user_data[0]
     # get machine
-    machine = dynamicGetMachine(user_data[2], model = model)
+    machine = dynamicGetMachine(user_data[1], model = model)
     # create a popup window
     RemoveMachinePopup = dpg.window(tag = "removeMachine", popup = True, no_open_over_existing_popup = True,
         width = 400, height = 250, no_move = True, no_close = True, no_collapse = True, no_resize = True,
@@ -2842,11 +2826,7 @@ def removeModel(sender, app_data, user_data):
     and from the main menu bar.
     """
     # get information from call
-    #debug
-    print("Model input before getting model: " + str(user_data[0]) + " with type " + str(type(user_data[0])))
     model = dynamicGetModel(user_data[0])
-    #debug
-    print("Model after getting model: " + str(model) + " with type " + str(type(model)))
     # create a popup window
     RemoveModelPopup = dpg.window(tag = "removeModel", popup = True, no_open_over_existing_popup = True,
         width = 400, height = 250, no_move = True, no_close = True, no_collapse = True, no_resize = True,

@@ -18,7 +18,7 @@ class MappingConfiguration:
     def configToDict(self):
         """Converts the object to a Dict that can be used in config writing/JSON conversion."""
         # create a dictionary to hold the object
-        to_dict = {"id":int(self.id_num), 
+        to_dict = {"id":str(self.id_num), 
                    "mappings":self.mappings}
         # return the dictionary
         return to_dict
