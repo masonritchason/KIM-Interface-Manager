@@ -778,16 +778,14 @@ def validateAddMachineInput(model, machine_name, measurements):
                 + "You have included an invalid character in this name."}]
         # valid name was entered
         else:
-            # get the model's machine list
-            model_machines = model['model_machines']
             # check that the name is unique
-            for curr_machine in model_machines:
+            for curr_machine in model.machines:
                 # if the machine names match
                 if curr_machine == machine_name:
                     # overlapping names, not unique
                     return [False, 
                         {"error":"Machine names must be unique.\n"
-                        + "The Machine '" + machine_name + "' for " + model['model_name']
+                        + "The Machine '" + machine_name + "' for " + str(model)
                         + "\nhas already been assigned."
                         + "\nChoose a different name for this Machine."}]
     # create a list to hold valid measurements
@@ -809,12 +807,8 @@ def validateAddMachineInput(model, machine_name, measurements):
         # the input box was empty, omit this input
         continue
     # if here, the machine information can make a machine Object
-    machine = {"name":machine_name, "measurements":[]}
-    # add each of the measurements to the measurement list
-    #NOTE: just set the lists equal to each other when doing OOP (like model below)
-    for meas in meas_list:
-        # add the item
-        machine['measurements'].append(meas)
+    machine = Machine(name = machine_name, measurements = meas_list, 
+        mapping_configurations = [], model = model)
     # return the machine
     return [True, machine]        
 
@@ -902,9 +896,7 @@ def validateEditMachineInput(model, machine, new_name, prior_name, checks, input
         # increment the index
         index += 1
     # if here, the machine information can make a machine Object
-    machine = Machine(name = new_name, measurements = [])
-    # add each of the measurements to the measurement list
-    machine.measurements = meas_list
+    machine = Machine(name = new_name, measurements = meas_list)
     # return the machine
     return [True, machine]   
 
@@ -973,9 +965,7 @@ def validateAddModelInput(model_name, base_information):
         # the input box was empty, omit this input
         continue
     # if here, the model information can make a model Object
-    model = Model(name = model_name, base_information = [], machines = [])
-    # add each base information to the base information list
-    model.base_information = info_list
+    model = Model(name = model_name, base_information = info_list, machines = [])
     # return the model
     return [True, model]  
 
@@ -1062,9 +1052,7 @@ def validateEditModelInput(model, new_name, prior_name, checks, inputs):
         # increment the index
         index += 1
     # if here, the model information can make a model Object
-    model = Model(name = new_name, base_information = [], machines = model.machines)
-    # add each of the base information headers to the list
-    model.base_information = info_list
+    model = Model(name = new_name, base_information = info_list, machines = model.machines)
     # return the model
     return [True, model]
 
@@ -1960,22 +1948,19 @@ def commitMachineEdits(sender, app_data, user_data):
 
 # adds a new machine to the KIM Interface configuration file
 def commitMachineAdd(sender, app_data, user_data):
-    """commitMachineAdd(user_data = continueCode, model, machine_name, measurements_list)
+    """commitMachineAdd(user_data = model, machine_name, measurements_list)
     
-    continueCode: str; continue code correspdonding to the action being performed.
     model: model; model Object owning the added machine.
     machine_name: DPG item; Input box holding the name of the new machine.
     measurements_list: [DPG Input Boxes]; list of entered machine measurements.
 
     Adds a new machine to a model in the KIM Interface config."""
-    # get continue code
-    continueCode = user_data[0]
     # get model
-    model = user_data[1]
+    model = user_data[0]
     # get new machine name
-    machine_name = dpg.get_value(user_data[2])
+    machine_name = dpg.get_value(user_data[1])
     # get the measurements for this machine
-    measurements_list = user_data[3]
+    measurements_list = user_data[2]
     # validate the new machine input
     validation = validateAddMachineInput(model, machine_name, measurements_list)
     # check that it was valid
@@ -1985,43 +1970,17 @@ def commitMachineAdd(sender, app_data, user_data):
     # valid config input
     else:
         # format the new machine information
-        NewMachine = validation[1]
+        new_machine = validation[1]
         # open KIM Interface config
         Interface_Config_File = openConfigFile()
-        # add the new machine to the machines list
-        Interface_Config_File['machines'].append(NewMachine)
         # get the index of the machine's model in KIM Interface config
-        model_index = Interface_Config_File['models'].index(model)
-        # add the new machine to its model
-        Interface_Config_File['models'][model_index]['model_machines'].append(NewMachine['name'])
+        model_index = Interface_Config_File['models'].index(Model.modelToDict(model))
+        # add the new Machine to the Model
+        model.machines.append(new_machine)
+        # update the Model in the config file
+        Interface_Config_File['models'][model_index] = Model.modelToDict(model)
         # overwrite the KIM Interface config file
-        overwriteConfigFile(Interface_Config_File, "Add Machine: " + str(NewMachine['name']))
-        # create a default config for the new machine (ID# 1)
-        # convert machine information to JSON
-        machine_config = {"timestamp":str(str(datetime.now()) + " | " + str(user)), "machine":NewMachine["name"], 
-            "mappings":[{"id":"1", "configuration":[]}]}
-        # add each model base info to the default mapping
-        for info in model['model_base_information']:
-            # add the info as a mapping item
-            machine_config["mappings"][0]['configuration'].append(
-                {"item":info, "sheet":1, "cluster":1, "type":"string", "value":""})
-        # add each machine measurement to the default mapping
-        for meas in NewMachine['measurements']:
-            # add the measurement as a mapping item
-            machine_config["mappings"][0]['configuration'].append(
-                {"item":meas, "sheet":1, "cluster":1, "type":"string", "value":""})
-        # convert the machine_config Dict to JSON
-        machine_config = dumps(machine_config, indent = 4)
-        # add file to store machine configurations in mapping configurations folder
-        File = open(os.path.join(sys_env_dir, "config", "mapping configurations", 
-            model['model_name'], NewMachine['name'] + ".json"), 'x')
-        # write the machine info into the file
-        File.write(machine_config)
-        # close the file
-        File.close()
-        # update the model and machine objects in runtime 
-        model = getModelObject(model['model_name'])
-        machine = getMachineObject(NewMachine['name'])
+        overwriteConfigFile(Interface_Config_File, "Add Machine: " + new_machine.name)
         # clear the Popup alias
         clearWindow("confirmPopup")
         # create the confirmation popup
@@ -2033,11 +1992,11 @@ def commitMachineAdd(sender, app_data, user_data):
         with Popup:
             # add a success message
             dpg.add_text("Success:", color = [150, 150, 255])
-            dpg.add_text("Your new machine " + machine['name'] 
-                + "\nfor " + model['model_name'] + " has been added.")
+            dpg.add_text("Your new machine " + new_machine.name 
+                + "\nfor " + str(model) + " has been added.")
             # add an Okay button
             dpg.add_button(label = "Okay!", pos = [125, 100], width = 150, height = 25,
-                callback = viewMachine, user_data = [model, machine])
+                callback = viewMachine, user_data = [model, new_machine])
 
 # removes a machine from the KIM Interface configuration file
 def commitMachineRemove(sender, app_data, user_data):
@@ -2206,20 +2165,17 @@ def addMachineMeasurementField(sender, app_data, user_data):
 
 # add machine flow
 def addMachine(sender, app_data, user_data):
-    """addMachine(user_data = continueCode, model)
+    """addMachine(user_data = model)
     
     SelectModelWindow -> AddMachineWindow
 
-    continueCode: str; continue code correspdonding to the action being performed.
     model: model; model Object owning the added machine.
     
     Invokes the UI flow from the SelectModelWindow to the AddMachineWindow.
     Invoked by the menu bar.
     """
-    # get continue code
-    continueCode = user_data[0]
     # get the model
-    model = getModelObject(user_data[1])
+    model = dynamicGetModel(user_data[0])
     # clear windows
     clearWindowRegistry()
     # create the AddMachineWindow
@@ -2235,17 +2191,15 @@ def addMachine(sender, app_data, user_data):
         # add model text label
         dpg.add_text("Add a new Machine for the KIM Interface to use.\n"
             + "-  Each Machine has a set of measurements;\n"
-            + "   these measurements are used to create mappings.\n"
+            + "   these measurements are used to create Mapping Configurations.\n"
             + "-  Machine names must be unique.", pos = [75, 100])
         # enter machine name label
-        dpg.add_text("Enter the new machine name:", pos = [75, 200])
+        dpg.add_text("Enter the new Machine name:", pos = [75, 200])
         # machine name entry box
         MachineNameEntry = dpg.add_input_text(width = 200, pos = [75, 225], hint = "Machine name...")
-        # add measurements setting panel
         # add measurements panel label
-        dpg.add_text("Enter machine measurements (measurement column headers):", pos = [400, 200])
-        # add 15 measurement field entries
-        # set positional offset
+        dpg.add_text("Enter Machine measurements (measurement column headers):", pos = [400, 200])
+        # set a positional offset
         pos_offset = 1
         # create a list to hold the measurement entries
         measurement_entries = []
@@ -2259,18 +2213,17 @@ def addMachine(sender, app_data, user_data):
             pos_offset += 1
         # add existing model machines label
         dpg.add_text("Existing Model Machines (names):", pos = [1000, 200])
-        # add existing machines list text
-        # set positional offset
+        # reset the positional offset
         pos_offset = 1
         # display the model's existing machines
-        for machine in model['model_machines']:
+        for machine in model.machines:
             # add this name to the window
-            dpg.add_text(machine, pos = [1000, 200 + (pos_offset * 25)])
+            dpg.add_text(machine.name, pos = [1000, 200 + (pos_offset * 25)])
             # increment the positional offset
             pos_offset += 1
         # add the Add New machine button
         dpg.add_button(label = "Add new Machine...", width = 270, pos = [50, 600],
-            callback = commitMachineAdd, user_data = ["addMachine", model, MachineNameEntry, measurement_entries])
+            callback = commitMachineAdd, user_data = [model, MachineNameEntry, measurement_entries])
 
 # remove machine flow
 def removeMachine(sender, app_data, user_data):
@@ -2936,7 +2889,7 @@ def viewModel(sender, app_data, user_data):
         dpg.add_button(label = "Remove this Model           !!", pos = [800, 250],
             callback = removeModel, user_data = [model])
         dpg.add_button(label = "Add a Machine to this Model ->", pos = [800, 275],
-            callback = addMachine, user_data = ["addMachine", model])
+            callback = addMachine, user_data = [model])
 
 # select model flow 
 def selectModel(sender, app_data, user_data):
