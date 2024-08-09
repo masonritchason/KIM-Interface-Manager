@@ -657,11 +657,10 @@ def validateAddConfigInput(model, machine, new_id, info_checks, measurement_chec
     return [True, config]
 
 # validates the input of an EDITED config
-def validateEditConfigInput(model, machine, config, new_id, prior_id, checks, inputs):
+def validateEditConfigInput(machine, config, new_id, prior_id, checks, inputs):
     """
-    validateEditConfigInput(model, machine, config, new_id, prior_id, checks, inputs)
+    validateEditConfigInput(machine, config, new_id, prior_id, checks, inputs)
 
-    model: model; model the config belongs to
     machine: machine; machine the config belongs to
     config: config; the config being edited
     id: str; edited input id of the config
@@ -673,8 +672,6 @@ def validateEditConfigInput(model, machine, config, new_id, prior_id, checks, in
     
     -> [Boolean:result, Config|Error]
     """
-    # get the new_id value from the DPG Input item
-    new_id = dpg.get_value(new_id)
     # check that an ID was entered
     if (not new_id) or (new_id is None):
         # no ID entered
@@ -692,22 +689,19 @@ def validateEditConfigInput(model, machine, config, new_id, prior_id, checks, in
                 + "\nYou have included an invalid character in this ID."}]
         # valid ID was entered
         else:
-            # get the machine's config list
-            machine_configs = openMachineConfiguration(machine['name'])
-            machine_configs = machine_configs['mappings']
             # check that it is unique
-            for config in machine_configs:
+            for config in machine.mapping_configurations:
                 # if the config IDs match
-                if config['id'] == new_id:
+                if config.id_num == new_id:
                     # is the match with the prior ID
-                    if config['id'] == prior_id:
+                    if config.id_num == prior_id:
                         # skip this config, the ID can match its previous ID
                         continue
                     else:
                         # overlapping IDs, not unique
                         return [False, 
                             {"error":"Mapping Configuration IDs must be unique.\n"
-                            + "The ID " + new_id + " for " + machine['name'] 
+                            + "The ID " + new_id + " for " + str(machine) 
                             + " has already been assigned.\n"
                             + "Choose a different Mapping Configuration" 
                             + " ID for this new Configuration."}]
@@ -732,17 +726,12 @@ def validateEditConfigInput(model, machine, config, new_id, prior_id, checks, in
             else:
                 # add it to the list
                 map_list.append(
-                    {"item":config['configuration'][index]['item'], "sheet":sheet, 
-                    "sheet":int(sheet), "cluster":int(cluster), "type":"string", "value":""})
-        # increment the model_info_loop
+                    {"item":config.mappings[index]['item'], "sheet":int(sheet), 
+                    "cluster":int(cluster), "type":"string", "value":""})
+        # increment the index
         index += 1
     # if here, the config information can make a config Object
-    config = {"id":new_id, "configuration":[]}
-    # add each of the maps to the configuration list
-    #NOTE: just set the lists equal to each other when doing OOP (like model below)
-    for curr_map in map_list:
-        # add the item
-        config["configuration"].append(curr_map)
+    config = MappingConfiguration(id_num = new_id, mappings = map_list, machine = machine)
     # return the config
     return [True, config]
 
@@ -1136,10 +1125,9 @@ def returnToStartup(sender, app_data, user_data):
 #__________________________________________________________________________________________________
 # makes an edit to a config in the mapping configurations file
 def commitConfigEdits(sender, app_data, user_data):
-    """commitConfigEdits(user_data = [continueCode, model, machine, 
+    """commitConfigEdits(user_data = [model, machine, 
         config, new_id, prior_id, checks, inputs])
     
-    continueCode: str; continue code correspdonding to the action being performed.
     model: model; model Object owning this config
     machine: machine; machine Object owning this config
     config: config; config Object being edited
@@ -1150,30 +1138,27 @@ def commitConfigEdits(sender, app_data, user_data):
 
     Commits a user edit to a mapping configuration in the system environment.
     """
-    # get continue code
-    continueCode = user_data[0]
     # get the model that owns this config
-    model = user_data[1]
+    model = user_data[0]
     # get the machine that owns this configuration
-    machine = user_data[2]
+    machine = user_data[1]
     # get the edited config
-    config = user_data[3]
+    config = user_data[2]
     # get the edited ID
-    new_id = user_data[4]
+    new_id = dpg.get_value(user_data[3])
     # get the prior id
-    prior_id = user_data[5]
+    prior_id = user_data[4]
     # get the edited selected config fields
-    checks = user_data[6]
+    checks = user_data[5]
     # get the edited selected config field maps
-    inputs = user_data[7]
+    inputs = user_data[6]
     # get the actual values of the entries
     for check in checks:
         check = dpg.get_value(check)
     for inp in inputs:
         inp = dpg.get_value(inp)
     # validate the new config's information
-    validation = validateEditConfigInput(model, machine, config, 
-        new_id, prior_id, checks, inputs)
+    validation = validateEditConfigInput(machine, config, new_id, prior_id, checks, inputs)
     # check that it was valid
     if not validation[0]:
         # DO NOT accept the new config object
@@ -1181,27 +1166,26 @@ def commitConfigEdits(sender, app_data, user_data):
     # valid config input
     else:
         # input was valid, continue
-        EditedConfig = validation[1]
-        # get the machine file
-        machine_file = openMachineConfiguration(machine['name'])
+        edited_config = validation[1]
+        # get the Interface config file
+        Interface_Config_File = openConfigFile()
         # get the index of the edited config
-        config_index = machine_file['mappings'].index(config)
-        # update the value of that index
-        machine_file['mappings'][config_index] = EditedConfig
-        # timestamp the file
-        machine_file = timestamp(machine_file,
-            "Edit Configuration: " + str(machine['name']) + "; ID # " + str(EditedConfig['id']))
-        # dump config to JSON
-        machine_file = dumps(machine_file, indent = 4)
+        config_index = machine.mapping_configurations.index(config)
+        # get the index of the Machine in the Model
+        machine_index = model.machines.index(machine)
+        # get the index of the Model in the config file
+        model_index = Interface_Config_File['models'].index(Model.modelToDict(model))
+        # update the Config in the Machine
+        machine.mapping_configurations[config_index] = edited_config
+        # update the Machine in the Model
+        model.machines[machine_index] = machine
+        # update the Model in the config file
+        Interface_Config_File['models'][model_index] = Model.modelToDict(model)
         # overwrite the config file
-        File = open(os.path.join(sys_env_dir, "config", "mapping configurations", 
-            machine['name'][:3], machine['name'] + ".json"), 'w')
-        # overwrite the config
-        File.write(machine_file)
-        # close the file
-        File.close()
+        overwriteConfigFile(Interface_Config_File, "Edit Configuration: " 
+            + str(machine) + "; " + str(edited_config))
         # update the config Object in runtime memory
-        config = getConfigObject(machine, config['id'])
+        config = edited_config
         # clear the Popup alias
         clearWindow("confirmPopup")
         # create the confirmation popup
@@ -1213,8 +1197,8 @@ def commitConfigEdits(sender, app_data, user_data):
         with Popup:
             # add a success message
             dpg.add_text("Success:", color = [150, 150, 255])
-            dpg.add_text("Your edits to " + machine['name'] + "'s configuration\n"
-                + "ID # " + str(config['id']) + " have been saved.")
+            dpg.add_text("Your edits to " + str(machine) + "'s configuration\n"
+                + "ID # " + config.id_num + " have been saved.")
             # add an Okay button
             dpg.add_button(label = "Okay!", pos = [125, 100], width = 150, height = 25,
                 callback = viewConfig, user_data = [model, machine, config])
@@ -1479,7 +1463,7 @@ def addConfig(sender, app_data, user_data):
         # make the new window the primary window
         dpg.set_primary_window("addConfigWindow", True)
         # back button
-        dpg.add_button(label = "<- Main Menu / Add a new Config...", pos = [10, 25],
+        dpg.add_button(label = "<- Main Menu / Add a new Config", pos = [10, 25],
             callback = selectModel, user_data = ["addConfig"])
         # add config text label
         dpg.add_text("Add a new Mapping Configuration for the KIM Interface to use.\n"
@@ -1601,12 +1585,10 @@ def removeConfig(sender, app_data, user_data):
 
 # edit config flow
 def editConfig(sender, app_data, user_data):
-    """editConfig(user_data = [continueCode, model, machine, config])
+    """editConfig(user_data = [model, machine, config])
 
     ViewConfigWindow -> EditConfigWindow
 
-    continueCode: str; the continue code that dictates the next window to open;
-        the current action flow of the program.
     model: model; the model owning the machine that is being edited.
     machine: machine; the machine owning the edited config.
     config: config; the config being edited.
@@ -1615,16 +1597,14 @@ def editConfig(sender, app_data, user_data):
     Invoked by the selection of "Edit config" in ViewConfigWindow;
     and from the main menu bar.
     """
-    # get continue code
-    continueCode = user_data[0]
     # get the model
-    model = user_data[1]
+    model = user_data[0]
     # get machine 
-    machine = user_data[2]
+    machine = user_data[1]
     # get the config from the selected ID
-    config = getConfigObject(machine, user_data[3])
+    config = dynamicGetConfig(user_data[2], machine = machine)
     # set the prior_id value before edits made
-    prior_id = config['id']
+    prior_id = config.id_num
     # clear windows
     clearWindowRegistry()
     # enable the EditConfigWindow
@@ -1635,12 +1615,12 @@ def editConfig(sender, app_data, user_data):
         # make the new window the primary window
         dpg.set_primary_window("editConfigWindow", True)
         # back button
-        dpg.add_button(label = "<- ... / View Configuration / Edit Configuration...",
+        dpg.add_button(label = "<- ... / View Configuration / Edit Configuration",
             callback = selectModel, user_data = ["editConfig"], pos = [10, 25])
         # add a config name label
-        dpg.add_text("Configuration ID #:\n\nfor " + machine['name'], pos = [75, 100])
+        dpg.add_text("Configuration ID #:\n\nfor " + machine.name, pos = [75, 100])
         # add an input box to allow editing of ID
-        IDInput = dpg.add_input_text(pos = [210, 100], width = 100, default_value = config['id'],
+        IDInput = dpg.add_input_text(pos = [210, 100], width = 100, default_value = config.id_num,
             hint = "New ID...")
         # add a mapping list
         dpg.add_text("Included Fields:", pos = [75, 200])
@@ -1653,16 +1633,16 @@ def editConfig(sender, app_data, user_data):
         # create a list to hold the checkboxes
         checks = []
         # for each cluster mapping in the configuration
-        for curr_map in config['configuration']:
+        for curr_mapping in config.mappings:
             # add a text item for that field
-            dpg.add_text(curr_map['item'] + ":", pos = [75, 200 + (pos_offset * 25)])
+            dpg.add_text(curr_mapping['item'] + ":", pos = [75, 200 + (pos_offset * 25)])
             # add a checkbox for this field
             checks.append(dpg.add_checkbox(pos = [200, 200 + (pos_offset * 25)], default_value = True))
             # add a sheet # input box
-            SheetsInput = dpg.add_input_text(default_value = curr_map['sheet'], 
+            SheetsInput = dpg.add_input_text(default_value = curr_mapping['sheet'], 
                 pos = [250, 200 + (pos_offset * 25)], width = 75, hint = "Clear Map")
             # add a cluster # input box
-            ClustersInput = dpg.add_input_text(default_value = curr_map['cluster'], 
+            ClustersInput = dpg.add_input_text(default_value = curr_mapping['cluster'], 
                 pos = [350, 200 + (pos_offset * 25)], width = 75, hint = "Clear Map")
             # add the mapping and its header to the mapping input list
             inputs.append([SheetsInput, ClustersInput])
@@ -1674,9 +1654,9 @@ def editConfig(sender, app_data, user_data):
                     + "    This should be avoided, if possible.", 
                     pos = [450, 225], color = [150, 150, 255])
         # add a Finish Editing button
-        dpg.add_button(label = "Finish Editing Configuration...", width = 270, pos = [50, 600],
+        dpg.add_button(label = "Finish Editing Configuration", width = 270, pos = [50, 600],
             callback = commitConfigEdits, user_data = 
-            ["editConfig", model, machine, config, IDInput, prior_id, checks, inputs])
+            [model, machine, config, IDInput, prior_id, checks, inputs])
 
 # duplicate config flow
 def duplicateConfig(sender, app_data, user_data):
@@ -1748,7 +1728,7 @@ def viewConfig(sender, app_data, user_data):
         # make the new window the primary window
         dpg.set_primary_window("viewConfigWindow", True)
         # back button
-        dpg.add_button(label = "<- ... / Select a Configuration / View Configuration...",
+        dpg.add_button(label = "<- ... / Select a Configuration / View Configuration",
             callback = selectModel, user_data = ["viewConfig"], pos = [10, 25])
         # add a config ID label
         dpg.add_text("Configuration ID #: " + str(config.id_num) + "\nfor " + machine.name, 
@@ -1768,7 +1748,7 @@ def viewConfig(sender, app_data, user_data):
         dpg.add_text("Configuration Actions:", pos = [800, 200])
         # add action buttons
         dpg.add_button(label = "Edit this Configuration       ->", pos = [800, 225],
-            callback = editConfig, user_data = ["editConfig", model, machine, config])
+            callback = editConfig, user_data = [model, machine, config])
         dpg.add_button(label = "Remove this Configuration     !!", pos = [800, 250],
             callback = removeConfig, user_data = ["removeConfig", model, machine, config])
         dpg.add_button(label = "Duplicate this Configuration  ->", pos = [800, 275],
@@ -2069,7 +2049,7 @@ def editMachineSubwindow(sender, app_data, user_data):
             MeasurementCheck = dpg.add_checkbox(pos = [150, 0 + (pos_offset * 25)], default_value = True)
             # add an input for editing the spec
             MeasurementInput = dpg.add_input_text(default_value = meas, 
-                pos = [200, 0 + (pos_offset * 25)], width = 200, hint = "Empty = Clear Measurement...")
+                pos = [200, 0 + (pos_offset * 25)], width = 200, hint = "Clear Measurement")
             # add the check to the list
             checks.append(MeasurementCheck)
             # add the input to the list
@@ -2086,7 +2066,7 @@ def editMachineSubwindow(sender, app_data, user_data):
                     + "    configurations. This should be avoided, if possible.", 
                     pos = [400, 25], color = [150, 150, 255])
         # add a Finish Editing button
-        dpg.add_button(label = "Finish Editing Machine...", width = 270, pos = [75, 500],
+        dpg.add_button(label = "Finish Editing Machine", width = 270, pos = [75, 500],
             callback = commitMachineEdits, user_data = 
             [model, machine, "machineNameInput", machine['name'], checks, inputs])
 
@@ -2142,7 +2122,7 @@ def addMachineMeasurementField(sender, app_data, user_data):
         # add a label
         dpg.add_text("Please enter the new measurement specification:")
         # add an input box
-        NewFieldInput = dpg.add_input_text(hint = "Specification...", width = 300)
+        NewFieldInput = dpg.add_input_text(hint = "Specification", width = 300)
         # add an add field button
         dpg.add_button(label = "Add New Measurement", pos = [5, 100], 
             callback = updateMachineMidEdit, user_data = [model, machine, NewFieldInput])
@@ -2173,7 +2153,7 @@ def addMachine(sender, app_data, user_data):
         # make the new window the primary window
         dpg.set_primary_window("addMachineWindow", True)
         # back button
-        dpg.add_button(label = "<- ... / Select a Model / Add a new Machine...", pos = [10, 25],
+        dpg.add_button(label = "<- ... / Select a Model / Add a new Machine", pos = [10, 25],
             callback = selectModel, user_data = ["addMachine"])
         # add model text label
         dpg.add_text("Add a new Machine for the KIM Interface to use.\n"
@@ -2209,7 +2189,7 @@ def addMachine(sender, app_data, user_data):
             # increment the positional offset
             pos_offset += 1
         # add the Add New machine button
-        dpg.add_button(label = "Add new Machine...", width = 270, pos = [50, 600],
+        dpg.add_button(label = "Add new Machine", width = 270, pos = [50, 600],
             callback = commitMachineAdd, user_data = [model, MachineNameEntry, measurement_entries])
 
 # remove machine flow
@@ -2276,7 +2256,7 @@ def editMachine(sender, app_data, user_data):
         # make the new window the primary window
         dpg.set_primary_window("editMachineWindow", True)
         # back button
-        dpg.add_button(label = "<- ... / View Machine / Edit Machine...",
+        dpg.add_button(label = "<- ... / View Machine / Edit Machine",
             callback = selectModel, user_data = ["editMachine"], pos = [10, 25])
         # add a machine name label
         dpg.add_text("Machine Name:", pos = [75, 100])
@@ -2313,7 +2293,7 @@ def viewMachine(sender, app_data, user_data):
         # make the new window the primary window
         dpg.set_primary_window("viewMachineWindow", True)
         # back button
-        dpg.add_button(label = "<- ... / Select a Machine / View Machine...",
+        dpg.add_button(label = "<- ... / Select a Machine / View Machine",
             callback = selectModel, user_data = ["viewMachine"], pos = [10, 25])
         # add a machine name label
         dpg.add_text("Machine name: " + machine.name, pos = [75, 100])
@@ -2608,7 +2588,7 @@ def editModelSubwindow(sender, app_data, user_data):
                 pos = [175, 25 + (pos_offset * 25)])
             # add an input to edit the header value
             BaseInfoInput = dpg.add_input_text(default_value = info, 
-                pos = [200, 25 + (pos_offset * 25)], width = 200, hint = "Empty = Clear Base Info...")
+                pos = [200, 25 + (pos_offset * 25)], width = 200, hint = "Clear Base Info")
             # add the checkbox to the list
             base_info_checks.append(BaseInfoCheck)
             # add the inputbox to the list
@@ -2625,7 +2605,7 @@ def editModelSubwindow(sender, app_data, user_data):
                     + "    Machine lists. This should be avoided, if possible.", 
                     pos = [400, 50], color = [150, 150, 255])
         # add a Finish Editing button
-        dpg.add_button(label = "Finish Editing Model...", width = 270, pos = [75, 500],
+        dpg.add_button(label = "Finish Editing Model", width = 270, pos = [75, 500],
             callback = commitModelEdits, user_data = [model, "modelNameInput",
                 model.name, base_info_checks, base_info_inputs])
 
@@ -2709,7 +2689,7 @@ def addModel(sender, app_data, user_data):
         # make the new window the primary window
         dpg.set_primary_window("addModelWindow", True)
         # back button
-        dpg.add_button(label = "<- Main Menu / Add a new Model...", pos = [10, 25],
+        dpg.add_button(label = "<- Main Menu / Add a new Model", pos = [10, 25],
             callback = returnToStartup)
         # add model text label
         dpg.add_text("Add a new Model for the KIM Interface to use.\n"
@@ -2731,7 +2711,7 @@ def addModel(sender, app_data, user_data):
         for i in range(15):
             # add a field name input box
             BaseInfoEntry = dpg.add_input_text(width = 300, pos = [400, 200 + (pos_offset * 25)], 
-                hint = "Program name, Judgement, etc...")
+                hint = "Program name, Judgement, etc.")
             # add the input box to the list
             base_information_entries.append(BaseInfoEntry)
             # increment positional offset
@@ -2750,7 +2730,7 @@ def addModel(sender, app_data, user_data):
             # increment the positional offset
             pos_offset += 1
         # add the Add New model button
-        dpg.add_button(label = "Add new Model...", width = 270, pos = [50, 600],
+        dpg.add_button(label = "Add new Model", width = 270, pos = [50, 600],
             callback = commitModelAdd, user_data = [ModelNameEntry, base_information_entries])
 
 # remove model flow
@@ -2811,7 +2791,7 @@ def editModel(sender, app_data, user_data):
         # make the new window the primary window
         dpg.set_primary_window("editModelWindow", True)
         # back button
-        dpg.add_button(label = "<- ... / View Model / Edit Model...",
+        dpg.add_button(label = "<- ... / View Model / Edit Model",
             callback = selectModel, user_data = ["editModel"], pos = [10, 25])
         # add a model name label
         dpg.add_text("Model Name:", pos = [75, 100])
@@ -2844,7 +2824,7 @@ def viewModel(sender, app_data, user_data):
         # make the new window the primary window
         dpg.set_primary_window("viewModelWindow", True)
         # back button
-        dpg.add_button(label = "<- ... / Select a Model / View Model...",
+        dpg.add_button(label = "<- ... / Select a Model / View Model",
             callback = selectModel, user_data = ["viewModel"], pos = [10, 25])
         # add a model name label
         dpg.add_text("Model name: " + model.name, pos = [75, 100])
@@ -2901,7 +2881,7 @@ def selectModel(sender, app_data, user_data):
         # make the new window the primary window
         dpg.set_primary_window("selectModelWindow", True)
         # back button
-        dpg.add_button(label = "<- Main Menu / Select...",
+        dpg.add_button(label = "<- Main Menu / Select",
             callback = returnToStartup, pos = [10, 25])
         # add select model label (always visible)
         dpg.add_text("Select a Model:", pos = [75, 50])
@@ -3142,7 +3122,7 @@ def showURLView(sender, app_data, user_data):
             dpg.add_text("i-Reporter URL Call (copy to i-Reporter action cluster):", 
                 color = [150, 150, 255])
             # create an input box to put the URL call in
-            URLBox = dpg.add_input_text(width = 480, hint = "Click 'Generate URL' to see a URL...")
+            URLBox = dpg.add_input_text(width = 480, hint = "Click 'Generate URL' to see a URL")
             # add information text
             dpg.add_text("To use this URL, do the following:\n"
                         + "   1. In i-Reporter, add an action cluster to the form;\n"
@@ -3216,7 +3196,7 @@ def informationWindow(sender, app_data, user_data):
         # add config selection label
         dpg.add_text("Select a Configuration:", pos = [700, 150])
         # add a listbox to select Configs from
-        ConfigListbox = dpg.add_listbox(items = ["Select a machine..."], callback = updateSelectedMapping,
+        ConfigListbox = dpg.add_listbox(items = ["Select a Machine"], callback = updateSelectedMapping,
             pos = [700, 175], default_value = None, width = 200, num_items = 20)
         # set the listbox' user_data
         dpg.set_item_user_data(MachineListbox, [MachineListbox, ConfigListbox, MachineNameText])
@@ -3438,7 +3418,7 @@ with StartupWindow:
                 "customize, and remove mapping configurations, machines, and\n" +
                 "models for the KIM Interface to use in i-Reporter forms.\n\n" + 
                 "To add a new configuration, use the Top Menu to navigate\n" +
-                "to the 'New...' menu and select 'Configuration'.", 
+                "to the 'New' menu and select 'Configuration'.", 
                 pos = [10, 125])
     # set temp path to the changelog.md file
     temp = os.path.join(sys_env_dir[:len(sys_env_dir) - 11], ".github", "CHANGELOG.md")
