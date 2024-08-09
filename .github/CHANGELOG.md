@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+#### Patch 2 `v1.3.02`
+Hotfix for an issue with the Help Window assets.
+Hotfix for an issue with backup function.
+No new features.
+
 ### KIM Interface v1.3.01
 ##### What's Changed in `v1.3.01`
 **Major Optimizations**
