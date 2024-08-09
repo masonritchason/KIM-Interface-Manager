@@ -2059,33 +2059,24 @@ def commitMachineAdd(sender, app_data, user_data):
 def commitMachineRemove(sender, app_data, user_data):
     """commitMachineRemove(user_data = continueCode, model, machine)
     
-    continueCode: str; continue code correspdonding to the action being performed.
     model: model; model Object owning the removed machine.
     machine: machine; machine being removed.
 
     Removes a machine from a model in the KIM Interface config."""
-    # get continue code
-    continueCode = user_data[0]
     # get model
-    model = user_data[1]
+    model = user_data[0]
     # get machine
-    machine = user_data[2]
+    machine = user_data[1]
     # get the KIM Interface config file
     Interface_Config_File = openConfigFile()
-    # remove the machine from the KIM Interface config['machines'] list
-    Interface_Config_File['machines'].remove(machine)
-    # update the model in the KIM Interface config file
     # get the index of the model in the model list
-    model_index = Interface_Config_File['models'].index(model)
+    model_index = Interface_Config_File['models'].index(
+        Model.modelToDict(model))
     # update that model's machine list
-    Interface_Config_File['models'][model_index]['model_machines'].remove(machine['name'])
+    Interface_Config_File['models'][model_index]['machines'].remove(
+        Machine.machineToDict(machine))
     # overwrite the KIM Interface config file
     overwriteConfigFile(Interface_Config_File, "Remove Machine: " + str(machine['name']))
-    # remove machine file in model folder in mapping configurations
-    os.remove(os.path.join(sys_env_dir, "config", "mapping configurations", 
-        model['model_name'], machine['name'] + ".json"))
-    # update the model object in runtime 
-    model = getModelObject(model['model_name'])
     # clear the remove popup
     clearWindow("removeMachine")
     # clear the Popup alias
@@ -2099,8 +2090,7 @@ def commitMachineRemove(sender, app_data, user_data):
     with Popup:
         # add a success message
         dpg.add_text("Success:", color = [150, 150, 255])
-        dpg.add_text("Your machine " + machine['name'] 
-            + "\nhas been removed.")
+        dpg.add_text("Your machine " + machine.name + "\nhas been removed.")
         # add an Okay button
         dpg.add_button(label = "Okay!", pos = [125, 100], width = 150, height = 25,
             callback = selectModel, user_data = ["removeMachine"])
@@ -2304,7 +2294,6 @@ def removeMachine(sender, app_data, user_data):
     
     ViewMachineWindow -> RemoveMachineWindow
     
-    continueCode: str; continue code correspdonding to the action being performed.
     model: model; model Object owning the removed machine.
     machine: machine; machine Object being removed.
     
@@ -2312,12 +2301,10 @@ def removeMachine(sender, app_data, user_data):
     Invoked by the selection of "Remove machine" in ViewMachineWindow;
     and from the main menu bar.
     """
-    # get continue code
-    continueCode = user_data[0]
     # get model
-    model = user_data[1]
+    model = user_data[0]
     # get machine
-    machine = getMachineObject(user_data[2])
+    machine = dynamicGetMachine(user_data[2], model = model)
     # create a popup window
     RemoveMachinePopup = dpg.window(tag = "removeMachine", popup = True, no_open_over_existing_popup = True,
         width = 400, height = 250, no_move = True, no_close = True, no_collapse = True, no_resize = True,
@@ -2327,7 +2314,7 @@ def removeMachine(sender, app_data, user_data):
     with RemoveMachinePopup:
         # add a warning
         dpg.add_text("Warning:", color = [255, 0, 50])
-        dpg.add_text("Removing a Machine from the Interface is 100" + '%' + "\n" 
+        dpg.add_text("Removing a Machine from the Interface is 100%\n" 
             + "irreversible! Only perform this action if you\n"
             + "are completely sure that it is out-of-use.")
         dpg.add_text("Confirm permanent removal of " + str(machine) + "?", color = [255, 0, 50])
@@ -2336,7 +2323,7 @@ def removeMachine(sender, app_data, user_data):
             callback = deleteItem, user_data = ["removeMachine"])
         # add a Delete button
         dpg.add_button(label = "Delete", pos = [200, 150], width = 180, height = 25,
-            callback = commitMachineRemove, user_data = ["removeMachine", model, machine])
+            callback = commitMachineRemove, user_data = [model, machine])
 
 # edit machine flow
 def editMachine(sender, app_data, user_data):
@@ -2422,7 +2409,7 @@ def viewMachine(sender, app_data, user_data):
         dpg.add_button(label = "Edit this Machine                   ->", pos = [800, 225],
             callback = editMachine, user_data = [model, machine])
         dpg.add_button(label = "Remove this Machine                 !!", pos = [800, 250],
-            callback = removeMachine, user_data = ["removeMachine", model, machine])
+            callback = removeMachine, user_data = [model, machine])
         dpg.add_button(label = "Add a Configuration to this Machine ->", pos = [800, 275],
             callback = addConfig, user_data = ["addConfig", model, machine])
 
