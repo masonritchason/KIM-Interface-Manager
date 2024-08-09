@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+### KIM Interface v1.3.01
+##### What's Changed in `v1.3.01`
+**Major Optimizations**
+* Back-end overhaul of `Manager` component to a more consistent, high-speed `OOP` syntax:
+    * `OOP` - Object-Oriented Programming; a programming practice that speeds up common 
+      runtime processes and allows for a more consistent system function.
+    * Much better than the previously-employed Dictionary structure method.
+* Startup and backup features are more streamlined.
+* Workflow optimizations and window flow improvements.
+* Graphical touch-ups.
+* System re-organization and configuration file overhaul:
+    * converted to a faster, single-file format containing all system objects.
+* KIM Interface v1.3.0 by @masonritchason in https://github.com/masonritchason/KIM-Interface-Manager/pull/19
+* KIM Interface v1.3.01 by @masonritchason in https://github.com/masonritchason/KIM-Interface-Manager/pull/20
+
 ### KIM Interface v1.2.1
 ##### What's Changed in `v1.2.1`
 **Bug Fixes**
