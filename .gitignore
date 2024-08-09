@@ -1,9 +1,9 @@
 /application/__pycache__
 /application/__pycache__/*
-/application/assets/classes/__pycache__
-/application/assets/classes/__pycache__/*
 /application/bin
 /application/bin/*
+/application/classes/__pycache__
+/application/classes/__pycache__/*
 /application/config
 /application/config/*
 /application/build
