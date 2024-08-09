@@ -2,11 +2,14 @@
 /application/__pycache__/*
 /application/bin
 /application/bin/*
+/application/classes/__pycache__
+/application/classes/__pycache__/*
 /application/config
 /application/config/*
+/application/build
+/application/build/*
 /application/logs
 /application/logs/*
-/application/results.txt
-/application/build/KIM Interface Manager/xref-KIM Interface Manager.html
-/application/build/KIM Interface Manager/warn-KIM Interface Manager.txt
+/application/KIM Interface Manager.spec
 /application/KIM_Interface.py
+/application/results.txt
