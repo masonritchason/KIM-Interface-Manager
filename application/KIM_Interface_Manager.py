@@ -15,7 +15,7 @@ import dearpygui.dearpygui as dpg
 import os as os
 from json import loads, dumps
 from re import compile
-from shutil import copytree
+from shutil import copyfile
 from datetime import datetime
 from webbrowser import open as web
 from classes.Model import Model as Model
@@ -171,29 +171,21 @@ def checkBackupCount():
     Removes the oldest config backup in the case that the count exceeds 25.
     """
     # save the backups directory
-    past_backups_dir = os.path.join(sys_env_dir, "bin", "backups", "past")
+    past_backups_dir = os.path.join(sys_env_dir, "config", "backups", "past")
     # check the number of folders in the past backups folder
     while len(os.listdir(past_backups_dir)) >= 25:
         # scan the size of the folder
         backups = os.listdir(past_backups_dir)
-        # does the directory need trimmed?
+        # does the directory need to be trimmed?
         if len(backups) >= 25:
             # add the dir root to each file name
             for i in range(len(backups)):
                 # add the dir root
                 backups[i] = os.path.join(past_backups_dir, backups[i])
-            # there are 25+ folders in the past backups folder; remove oldest
-            backups = sorted(backups, key = os.path.getctime)
-            # clear the files in the directory
-            for root, dirs, files in os.walk(top = backups[0], topdown = False):
-                # remove all files
-                for file in files:
-                    os.remove(os.path.join(root, file))
-                # remove all dirs
-                for folder in dirs:
-                    os.rmdir(os.path.join(root, folder))
+            # there are 25+ files in the past backups folder; remove oldest
+            backups = sorted(backups)
             # remove the oldest file (first in the list)
-            os.rmdir(backups[0])
+            os.remove(backups[0])
             backups.pop(0)
         # once here, there is room for another backup in past backups
 
@@ -205,42 +197,37 @@ def pastBackup():
     in the past backups folder. Clears the latest backup from the latest folder.
     """
     # save the backups directories
-    latest_dir = os.path.join(sys_env_dir, "bin", "backups", "latest")
-    # save the timestamp (used to name the past backup folder)
-    File = open(os.path.join(latest_dir, "KIM_interface_configuration.json"), 'r')
-    # save the file text
-    text = File.read()
-    # close the file
-    File.close()
-    # convert to JSON
-    text = loads(text)
-    # get the timestamp
-    time = text['timestamp']
-    # remove milliseconds from timestamp
-    time = (time.split('.'))[0]
-    # remove invalid directory characters
-    time = time.replace(':', '.')
-    # save the past backup folder dir
-    past_dir = os.path.join(sys_env_dir, "bin", "backups", "past", time)
-    # check the past backups folder
-    checkBackupCount()
-    # if the timestamped config has not already been backed-up
-    if not os.path.isdir(past_dir):
-        # copy the config tree from the latest to past backup
-        copytree(latest_dir, past_dir)
-    # clear all files from the latest directory (needs to happen either way)
-    for root, dirs, files in os.walk(top = latest_dir, topdown = False):
-        # for each file in the tree
-        for file in files:
-            # remove that file
-            os.remove(os.path.join(root, file))
-        # for each folder in the tree
-        for dir in dirs:
-            # remove that folder
-            os.rmdir(os.path.join(root, dir))
-    # remove the latest folder (recreated by createConfigBackup)
-    os.rmdir(latest_dir)
-
+    latest_dir = os.path.join(sys_env_dir, "config", "backups", "latest.json")
+    # save the timestamp (used to name the past backup file)
+    try:
+        File = open(latest_dir, 'r')
+        # save the file text
+        text = File.read()
+        # close the file
+        File.close()
+        # convert to JSON
+        text = loads(text)
+        # get the timestamp
+        time = text['timestamp']
+        # remove milliseconds from timestamp
+        time = (time.split('.'))[0]
+        # remove invalid directory characters
+        time = time.replace(':', '.')
+        # save the past backup folder dir
+        past_dir = os.path.join(sys_env_dir, "config", "backups", "past", str(time) + ".json")
+        # check the past backups folder
+        checkBackupCount()
+        # if the timestamped config has not already been backed-up
+        if not os.path.isfile(past_dir):
+            # copy the config tree from the latest to past backup
+            copyfile(latest_dir, past_dir)
+        # delete the latest.json file (needs to happen either way)
+        os.remove(latest_dir)
+    # the latest.json file doesn't exist
+    except Exception:
+        # nothing needs to happen
+        pass
+    
 # createConfigBackup maintains a configuration backup
 def createConfigBackup():
     """createConfigBackup():
@@ -249,14 +236,14 @@ def createConfigBackup():
     the mapping configurations folder in the bin folder.
     """
     # save the backups directory
-    backups_dir = os.path.join(sys_env_dir, "bin", "backups")
+    backups_dir = os.path.join(sys_env_dir, "config", "backups")
     # set the source for copying
-    source = os.path.join(sys_env_dir, "config")
-    dest = os.path.join(backups_dir, "latest")
+    source = os.path.join(sys_env_dir, "config", "KIM_interface_configuration.json")
+    dest = os.path.join(backups_dir, "latest.json")
     # move the previous latest configuration backup to past packups
     pastBackup()
-    # copy the config tree from the config to backup/latest
-    copytree(source, dest)
+    # copy the current config file from the config to backup/latest
+    copyfile(source, dest)
 
 
 ### DPG Window Management
@@ -3317,18 +3304,10 @@ except Exception:
     # folder exists
     pass
 
-# verify the mapping configurations folder
-try:
-    # create the folder (first run)
-    os.mkdir(os.path.join(sys_env_dir, "config", "mapping configurations"))
-except Exception:
-    # folder exists
-    pass
-
 # verify the KIM_interface_configuration.json file
 try:
     # make a dict object to format the empty config file
-    temp = {"timestamp":str(str(datetime.now()) + " | " + str(user)), "models":[], "machines":[]}
+    temp = {"timestamp":str(str(datetime.now()) + " | " + str(user)), "models":[]}
     # format the dict as JSON
     temp = dumps(temp, indent = 4)
     # create the file (first run)
@@ -3340,21 +3319,24 @@ except Exception:
     # file exists
     pass
 
-# verify the backups folder
+# verify the config/backups folder
 try:
-    # create the bin folder first (first run)
-    os.mkdir(os.path.join(sys_env_dir, "bin"))
     # create the backups folder
-    os.mkdir(os.path.join(sys_env_dir, "bin", "backups"))
+    os.mkdir(os.path.join(sys_env_dir, "config", "backups"))
 except Exception:
+    # backup folder exists; create subfolders
     try:
-        # create the backups folder
-        os.mkdir(os.path.join(sys_env_dir, "bin", "backups"))
+        # create latest backup folder
+        os.mkdir(os.path.join(sys_env_dir, "config", "backups", "latest"))
     except Exception:
-        # bin and backups folders exist
+        # latest folder exists
         pass
-    # backup folder exists
-    pass
+    try:
+        # create past backups folder
+        os.mkdir(os.path.join(sys_env_dir, "config", "backups", "past"))
+    except Exception:
+        # past folder exists
+        pass
 
 # verify the changelog.txt file
 try:
