@@ -232,8 +232,7 @@ def pastBackup():
 def createConfigBackup():
     """createConfigBackup():
     
-    Creates a copy of the current KIM_Interface_Configuration.json file and
-    the mapping configurations folder in the bin folder.
+    Creates a copy of the current KIM_Interface_Configuration.json in the backup folder.
     """
     # save the backups directory
     backups_dir = os.path.join(sys_env_dir, "config", "backups")
@@ -1102,7 +1101,7 @@ def returnToStartup(sender, app_data, user_data):
 
 ## CONFIG UI CALLBACKS
 #__________________________________________________________________________________________________
-# makes an edit to a config in the mapping configurations file
+# makes an edit to a config in the interface config file
 def commitConfigEdits(sender, app_data, user_data):
     """commitConfigEdits(user_data = [model, machine, 
         config, new_id, prior_id, checks, inputs])
@@ -1259,7 +1258,7 @@ def commitConfigAdd(sender, app_data, user_data):
             dpg.add_button(label = "Okay!", pos = [125, 100], width = 150, height = 25,
                 callback = viewConfig, user_data = [model, machine, config])
 
-# duplicates a config in the mapping configurations file
+# duplicates a config in the interface config file
 def commitConfigDuplicate(sender, app_data, user_data):
     """commitConfigDuplicate(user_data = [model, machine, config, ConfigID])
     
@@ -1343,7 +1342,7 @@ def commitConfigDuplicate(sender, app_data, user_data):
         dpg.add_button(label = "Okay!", pos = [125, 100], width = 150, height = 25,
             callback = viewConfig, user_data = [model, machine, config])
 
-# removes a config from the mapping configurations file
+# removes a config from the interface config file
 def commitConfigRemove(sender, app_data, user_data):
     """commitConfigRemove(user_data = [model, machine, config])
     
@@ -3358,9 +3357,9 @@ with StartupWindow:
     # add info text
     dpg.add_text("What can this software do?", pos = [10, 100])
     dpg.add_text("The KIM Interface Manager allows you to create, view,\n" +
-                "customize, and remove mapping configurations, machines, and\n" +
-                "models for the KIM Interface to use in i-Reporter forms.\n\n" + 
-                "To add a new configuration, use the Top Menu to navigate\n" +
+                "customize, and remove Mapping configurations, Machines, and\n" +
+                "Models for the KIM Interface to use in i-Reporter forms.\n\n" + 
+                "To add a new Configuration, use the Top Menu to navigate\n" +
                 "to the 'New' menu and select 'Configuration'.", 
                 pos = [10, 125])
     # set temp path to the changelog.md file
