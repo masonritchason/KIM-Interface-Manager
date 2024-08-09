@@ -1370,49 +1370,35 @@ def commitConfigDuplicate(sender, app_data, user_data):
 
 # removes a config from the mapping configurations file
 def commitConfigRemove(sender, app_data, user_data):
-    """commitConfigRemove(user_data = [continueCode, model, machine, config])
+    """commitConfigRemove(user_data = [model, machine, config])
     
-    continueCode: str; continue code correspdonding to the action being performed.
     model: model; model Object owning this config's machine
     machine: machine; machine Object owning this config
     config: config; config Object to be removed
 
     Commits the removal of a mapping configuration from the system environment.
     """
-    # get continue code
-    continueCode = user_data[0]
     # get the model Object owning this config
-    model = user_data[1]
+    model = user_data[0]
     # get the machine Object to be removed
-    machine = user_data[2]
+    machine = user_data[1]
     # get the removed config
-    config = user_data[3]
-    # get the machine file
-    machine_file = openMachineConfiguration(machine['name'])
-    # initialize a list index
-    index = 0
-    # find the config in the list
-    for curr_mapping in machine_file['mappings']:
-        # if the names match
-        if curr_mapping['id'] == config['id']:
-            # remove that config from the list
-            machine_file['mappings'].remove(config)
-            # break the loop
-            break
-        # increment the index
-        index += 1
-    # timestamp the file
-    machine_file = timestamp(machine_file,
-        "Remove Configuration: " + str(machine['name']) + "; ID # " + str(config['id']))
-    # convert the new config to json
-    machine_file = dumps(machine_file, indent = 4)
-    # open the machine config file
-    File = open(os.path.join(sys_env_dir, "config", "mapping configurations", 
-        model['model_name'], machine['name'] + ".json"), 'w')
-    # overwrite the config file
-    File.write(machine_file)
-    # close the file
-    File.close()
+    config = user_data[2]
+    # open the interface config file
+    Interface_Config_File = openConfigFile()
+    # get the model index
+    model_index = Interface_Config_File['models'].index(Model.modelToDict(model))
+    # get the machine index
+    machine_index = model.machines.index(machine)
+    # remove the config from the Machine
+    machine.mapping_configurations.pop(machine.mapping_configurations.index(config))
+    # update the Machine in the Model
+    model.machines[machine_index] = machine
+    # update the model in the config file
+    Interface_Config_File['models'][model_index] = Model.modelToDict(model)
+    # overwrite the KIM Interface config file
+    overwriteConfigFile(Interface_Config_File, "Remove Config: " 
+        + str(machine) + "; ID # " +  config.id_num)
     # clear the remove popup
     clearWindow("removeConfig")
     # clear the Popup alias
@@ -1426,8 +1412,7 @@ def commitConfigRemove(sender, app_data, user_data):
     with Popup:
         # add a success message
         dpg.add_text("Success:", color = [150, 150, 255])
-        dpg.add_text("Your mapping configuration ID # " + config['id'] 
-            + "\nfor " + machine['name'] + " has been removed.")
+        dpg.add_text("Your " + str(config) + "\nfor " + str(machine) + " has been removed.")
         # add an Okay button
         dpg.add_button(label = "Okay!", pos = [125, 100], width = 150, height = 25,
             callback = selectModel, user_data = ["removeConfig"])
@@ -1539,12 +1524,10 @@ def addConfig(sender, app_data, user_data):
 
 # remove config flow
 def removeConfig(sender, app_data, user_data):
-    """removeConfig(user_data = [continueCode, model, machine, config])
+    """removeConfig(user_data = [model, machine, config])
 
     ViewConfigWindow -> RemoveConfigWindow
 
-    continueCode: str; the continue code that dictates the next window to open;
-        the current action flow of the program.
     model: model; the model owning the machine that is being removed from.
     machine: machine; the machine owning the removed config.
     config: config; the config being removed.
@@ -1553,14 +1536,12 @@ def removeConfig(sender, app_data, user_data):
     Invoked by the selection of "Remove config" in ViewConfigWindow;
     and from the main menu bar.
     """
-    # get continue code
-    continueCode = user_data[0]
     # get the model
-    model = user_data[1]
+    model = user_data[0]
     # get machine 
-    machine = user_data[2]
+    machine = user_data[1]
     # get the config from the selected ID
-    config = getConfigObject(machine, user_data[3])
+    config = dynamicGetConfig(user_data[2], machine = machine)
     # clear popup alias
     clearWindow("removeConfig")
     # create a popup window
@@ -1581,7 +1562,7 @@ def removeConfig(sender, app_data, user_data):
             callback = deleteItem, user_data = ["removeConfig"])
         # add a Delete button
         dpg.add_button(label = "Delete", pos = [200, 150], width = 180, height = 25,
-            callback = commitConfigRemove, user_data = ["removeConfig", model, machine, config])
+            callback = commitConfigRemove, user_data = [model, machine, config])
 
 # edit config flow
 def editConfig(sender, app_data, user_data):
@@ -1750,7 +1731,7 @@ def viewConfig(sender, app_data, user_data):
         dpg.add_button(label = "Edit this Configuration       ->", pos = [800, 225],
             callback = editConfig, user_data = [model, machine, config])
         dpg.add_button(label = "Remove this Configuration     !!", pos = [800, 250],
-            callback = removeConfig, user_data = ["removeConfig", model, machine, config])
+            callback = removeConfig, user_data = [model, machine, config])
         dpg.add_button(label = "Duplicate this Configuration  ->", pos = [800, 275],
             callback = duplicateConfig, user_data = [model, machine, config])
 
