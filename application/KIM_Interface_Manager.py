@@ -3178,7 +3178,7 @@ def emailDraft():
     opens a new email addressed to Mason Ritchason (masonritchason@gmail.com)
     """
     # set a mailto link
-    mailto = "mailto:masonritchason@gmail.com?subject=[KIM Interface Manager] Help Request&body=Hello, my name is <your name here>.I am requesting help with your software KIM Interface Manager.My issue is that <describe your issue>.I encounter it when I <describe how you create/recreate the issue>.<include extra info, context, images, etc.>I would love to see this issue resolved by <describe your suggested solution>."
+    mailto = "mailto:masonritchason@gmail.com?subject=[KIM Interface Manager] Help Request&body=Hello, my name is <your name here>. I am requesting help with your software KIM Interface Manager. My issue is that <describe your issue>. I encounter it when I <describe how you create/recreate the issue>. <include extra info, context, images, etc.> I would love to see this issue resolved by <describe your suggested solution>."
 
     # open the mailto link
     web(mailto)
@@ -3245,7 +3245,7 @@ def helpWindow(sender, app_data, user_data):
     else:
         pos = dpg.get_item_pos("helpWindow")
     # set the path to the folder of chapter pages in system files
-    temp = os.path.join(sys_env_dir, "build", "help", "chap" + str(chapter))
+    temp = os.path.join(sys_env_dir, "assets", "help", "chap" + str(chapter))
     # hold a list of the page images
     pages = []
     # add each image to the list of pages
@@ -3323,13 +3323,7 @@ try:
     # create the backups folder
     os.mkdir(os.path.join(sys_env_dir, "config", "backups"))
 except Exception:
-    # backup folder exists; create subfolders
-    try:
-        # create latest backup folder
-        os.mkdir(os.path.join(sys_env_dir, "config", "backups", "latest"))
-    except Exception:
-        # latest folder exists
-        pass
+    # backup folder exists
     try:
         # create past backups folder
         os.mkdir(os.path.join(sys_env_dir, "config", "backups", "past"))
