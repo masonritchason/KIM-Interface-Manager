@@ -584,17 +584,14 @@ def validateAddConfigInput(model, machine, new_id, info_checks, measurement_chec
                 + "\nYou have included an invalid character in this ID."}]
         # valid ID was entered
         else:
-            # get the machine's config list
-            machine_configs = openMachineConfiguration(machine['name'])
-            machine_configs = machine_configs['mappings']
             # check that it is unique
-            for config in machine_configs:
+            for config in machine.mapping_configurations:
                 # if the config IDs match
-                if config['id'] == new_id:
+                if config.id_num == new_id:
                     # overlapping IDs, not unique
                     return [False, 
                         {"error":"Mapping Configuration IDs must be unique.\n"
-                        + "The ID " + new_id + " for " + machine['name'] 
+                        + "The ID " + new_id + " for " + machine.name 
                         + " has already been assigned.\n"
                         + "Choose a different Mapping Configuration ID for this new Configuration."
                         }]
@@ -619,8 +616,8 @@ def validateAddConfigInput(model, machine, new_id, info_checks, measurement_chec
             else:
                 # add it to the list
                 map_list.append(
-                    {"item":model['model_base_information'][index], 
-                    "sheet":int(sheet), "cluster":int(cluster), "type":"string", "value":""})
+                    {"item":model.base_information[index], "sheet":int(sheet), 
+                    "cluster":int(cluster), "type":"string", "value":""})
         # increment the model_info_loop
         index += 1
     # track the index of the machine measurement list
@@ -642,17 +639,12 @@ def validateAddConfigInput(model, machine, new_id, info_checks, measurement_chec
             else:
                 # add it to the list
                 map_list.append(
-                    {"item":machine['measurements'][index], 
-                    "sheet":int(sheet), "cluster":int(cluster), "type":"string", "value":""})
+                    {"item":machine.measurements[index], "sheet":int(sheet), 
+                    "cluster":int(cluster), "type":"string", "value":""})
         # increment the model_info_loop
         index += 1
     # if here, the config information can make a config Object
-    config = {"id":new_id, "configuration":[]}
-    # add each of the maps to the configuration list
-    #NOTE: just set the lists equal to each other when doing OOP (like model below)
-    for curr_map in map_list:
-        # add the item
-        config["configuration"].append(curr_map)
+    config = MappingConfiguration(id_num = new_id, mappings = map_list, machine = machine)
     # return the config
     return [True, config]
 
@@ -1205,10 +1197,9 @@ def commitConfigEdits(sender, app_data, user_data):
 
 # add a new configuration to the mappings files
 def commitConfigAdd(sender, app_data, user_data):
-    """commitConfigAdd(user_data = [continueCode, model, machine, config_id, 
+    """commitConfigAdd(user_data = [model, machine, config_id, 
         model_info_checks, machine_measurement_checks, model_info_mappings, machine_meas_mappings])
     
-    continueCode: str; continue code correspdonding to the action being performed.
     model: model; model Object owning this config's machine
     machine: machine; machine Object owning this config
     config_id: str; new config's ID number
@@ -1219,19 +1210,17 @@ def commitConfigAdd(sender, app_data, user_data):
 
     Commits an addition of a new mapping configuration to the system environment.
     """
-    # get continue code
-    continueCode = user_data[0]
     # get the model that owns the config
-    model = user_data[1]
+    model = user_data[0]
     # get the machine that owns the config
-    machine = user_data[2]
+    machine = user_data[1]
     # get the config ID
-    config_id = dpg.get_value(user_data[3])
+    config_id = dpg.get_value(user_data[2])
     # get the selection information lists
-    model_info_checks = user_data[4]
-    machine_measurement_checks = user_data[5]
-    info_mappings = user_data[6]
-    meas_mappings = user_data[7]
+    model_info_checks = user_data[3]
+    machine_measurement_checks = user_data[4]
+    info_mappings = user_data[5]
+    meas_mappings = user_data[6]
     # validate the new config's information
     validation = validateAddConfigInput(model, machine, config_id, 
         model_info_checks, machine_measurement_checks, info_mappings, meas_mappings)
@@ -1242,31 +1231,31 @@ def commitConfigAdd(sender, app_data, user_data):
     # valid config input
     else:
         # input was valid, continue
-        NewConfig = validation[1]
-        # get the machine file
-        machine_file = openMachineConfiguration(machine['name'])
-        # add the new config to the machine object
-        machine_file['mappings'].append(NewConfig)
+        new_config = validation[1]
+        # get the Interface config file
+        Interface_Config_File = openConfigFile()
+        # get the index of the Machine in the Model
+        machine_index = model.machines.index(machine)
+        # get the index of the Model in the config file
+        model_index = Interface_Config_File['models'].index(Model.modelToDict(model))
+        # add the Config to the Machine
+        machine.mapping_configurations.append(new_config)
         # fix corrupt character writing
-        for curr_mapping in machine_file['mappings']:
-            for curr_item in curr_mapping['configuration']:
-                curr_item['item'] = curr_item['item'].replace('Ã˜', 'Ø')
-                curr_item['item'] = curr_item['item'].replace('Â±', '±')
-        # write the machine's information to its file after appending the new mapping
-        # timestamp the file
-        machine_file = timestamp(machine_file, 
-            "Add Configuration: " + str(machine['name']) + "; ID # " + str(NewConfig['id']))
-        # reformat the machine_file text into JSON
-        machine_file = dumps(machine_file, indent = 4)
-        # open the machine's file
-        File = open(os.path.join(sys_env_dir, "config", "mapping configurations", 
-            str(model['model_name']), str(machine['name']) + ".json"), 'w')
-        # write to the file
-        File.write(machine_file)
-        # close the machine file
-        File.close()
+        for curr_mapping in machine.mapping_configurations:
+            for curr_map in curr_mapping.mappings:
+                # save the current map
+                item = curr_map['item']
+                item = item.replace('Ã˜', 'Ø')
+                item = item.replace('Â±', '±')
+        # update the Machine in the Model
+        model.machines[machine_index] = machine
+        # update the Model in the config file
+        Interface_Config_File['models'][model_index] = Model.modelToDict(model)
+        # overwrite the config file
+        overwriteConfigFile(Interface_Config_File, "Add Configuration: " 
+            + str(machine) + "; " + str(new_config))
         # update the config Object in runtime memory
-        config = getConfigObject(machine, NewConfig['id'])
+        config = new_config
         # clear the Popup alias
         clearWindow("confirmPopup")
         # create the confirmation popup
@@ -1278,8 +1267,7 @@ def commitConfigAdd(sender, app_data, user_data):
         with Popup:
             # add a success message
             dpg.add_text("Success:", color = [150, 150, 255])
-            dpg.add_text("Your new mapping configuration ID # " + str(NewConfig['id']) 
-                + "\nfor " + machine['name'] + " has been added.")
+            dpg.add_text("Your new " + str(config) + "\nfor " + str(machine) + " has been added.")
             # add an Okay button
             dpg.add_button(label = "Okay!", pos = [125, 100], width = 150, height = 25,
                 callback = viewConfig, user_data = [model, machine, config])
@@ -1420,24 +1408,20 @@ def commitConfigRemove(sender, app_data, user_data):
 # add config flow
 def addConfig(sender, app_data, user_data):
     """
-    addConfig(user_data = [continueCode, model, machine])
+    addConfig(user_data = [model, machine])
     
     SelectMachineWindow -> AddConfigWindow
 
-    continueCode: str; the continue code that dictates the next window to open;
-        the current action flow of the program.
     model: model; the model owning the machine that is being added to.
     machine: machine; the machine owning the new config.
     
     Invokes the UI flow from the SelectMachineWindow to the AddConfigWindow.
     Invoked by the menu bar.
     """
-    # get continue code
-    continueCode = user_data[0]
     # get the model Object owning this config
-    model = getModelObject(user_data[1])
+    model = user_data[0]
     # get the machine Object to be removed
-    machine = getMachineObject(user_data[2])
+    machine = dynamicGetMachine(user_data[1], model = model)
     # clear windows
     clearWindowRegistry()
     # create the AddConfigWindow
@@ -1456,7 +1440,7 @@ def addConfig(sender, app_data, user_data):
             + "   assign each information field a sheet and cluster number.\n"
             + "-  Configuration IDs must be unique and contain only numbers and dashes.", pos = [75, 75])
         # machine name label
-        dpg.add_text("Machine Name: " + machine['name'], pos = [75, 200])
+        dpg.add_text("Machine Name: " + machine.name, pos = [75, 200])
         # mapping ID label
         dpg.add_text("Enter Configuration ID #:", pos = [75, 225])
         # mapping ID entry box
@@ -1478,14 +1462,12 @@ def addConfig(sender, app_data, user_data):
         # set an incrementing position offset
         pos_offset = 1
         # initialize a list of created checkboxes & sheet/cluster mappings
-        # lists for model base info
         info_checkboxes = []
         info_mappings = []
-        # lists for machine measurements
         measurement_checkboxes = []
         measurement_mappings = []
         # for each field of base information
-        for curr_info in model['model_base_information']:
+        for curr_info in model.base_information:
             # calculate positional offset
             offset = 250 + (25 * pos_offset)
             # add a text label w/its name
@@ -1502,11 +1484,11 @@ def addConfig(sender, app_data, user_data):
         # reset the incrementing position offset
         pos_offset = 1
         # for each field of machine measurements
-        for meas in machine['measurements']:
+        for curr_meas in machine.measurements:
             # calculate positional offset
             offset = 75 + (25 * pos_offset)
             # add a text label w/its name
-            dpg.add_text(meas, pos = [700, offset])
+            dpg.add_text(curr_meas, pos = [700, offset])
             # add a toggle checkbox
             measurement_checkboxes.append(dpg.add_checkbox(default_value = False, pos = [900, offset]))
             # add a sheet # and cluster # input
@@ -1518,7 +1500,7 @@ def addConfig(sender, app_data, user_data):
             pos_offset += 1
         # add 'finalize' config button
         dpg.add_button(label = "Add Mapping Configuration", callback = commitConfigAdd, 
-            user_data = ["viewConfig", model, machine, NewConfigID, info_checkboxes, measurement_checkboxes, 
+            user_data = [model, machine, NewConfigID, info_checkboxes, measurement_checkboxes, 
             info_mappings, measurement_mappings], pos = [50, 620],
             width = 300)
 
@@ -2296,7 +2278,7 @@ def viewMachine(sender, app_data, user_data):
         dpg.add_button(label = "Remove this Machine                 !!", pos = [800, 250],
             callback = removeMachine, user_data = [model, machine])
         dpg.add_button(label = "Add a Configuration to this Machine ->", pos = [800, 275],
-            callback = addConfig, user_data = ["addConfig", model, machine])
+            callback = addConfig, user_data = [model, machine])
 
 # select machine flow
 def selectMachine(sender, app_data, user_data):
@@ -2312,10 +2294,8 @@ def selectMachine(sender, app_data, user_data):
     """
     # get continue code
     continueCode = user_data[0]
-    # get model & models list
-    model = user_data[1]
     # find the actual model object
-    model = dynamicGetModel(model)
+    model = dynamicGetModel(user_data[1])
     # clear windows
     clearWindowRegistry(["selectModelWindow"])
     # create a SelectMachine window
