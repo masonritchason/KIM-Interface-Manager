@@ -1302,9 +1302,8 @@ def commitConfigAdd(sender, app_data, user_data):
 
 # duplicates a config in the mapping configurations file
 def commitConfigDuplicate(sender, app_data, user_data):
-    """commitConfigDuplicate(user_data = [continueCode, model, machine, config, ConfigID])
+    """commitConfigDuplicate(user_data = [model, machine, config, ConfigID])
     
-    continueCode: str; continue code correspdonding to the action being performed.
     model: model; the model owning the duplicated config.
     machine: machine; the machine owning the duplicated config.
     config: config; config Object to be duplicated.
@@ -1312,23 +1311,19 @@ def commitConfigDuplicate(sender, app_data, user_data):
 
     Commits the duplication of a mapping configuration in the system environment
     """
-    # get continue code
-    continueCode = user_data[0]
     # get the model
-    model = user_data[1]
+    model = user_data[0]
     # get the machine
-    machine = user_data[2]
+    machine = user_data[1]
     # get the duplicated config
-    config = user_data[3]
+    config = user_data[2]
     # get the ID
-    ConfigID = dpg.get_value(user_data[4])
-    # get the machine file
-    machine_file = openMachineConfiguration(machine['name'])
+    dest_config_id = dpg.get_value(user_data[3])
     # validate the config's ID
     # create a regex to compare to (0-9 and '-')
     pattern = compile('^[0-9\\-]+$')
     # if the entered mapping ID does not match
-    if not pattern.match(ConfigID):
+    if not pattern.match(dest_config_id):
         # invalid ID entered
         showWarningPopup("Mapping Configuration IDs can only contain digits (0-9) and dashes '-'."
             + "\nYou have included an invalid character in this ID.")
@@ -1337,44 +1332,41 @@ def commitConfigDuplicate(sender, app_data, user_data):
         return
     # valid ID was entered
     else:
-        # get the machine's config list
-        machine_configs = machine_file['mappings']
         # check that it is unique
-        for config in machine_configs:
+        for config in machine.mapping_configurations:
             # if the config IDs match
-            if config['id'] == ConfigID:
+            if config.id_num == dest_config_id:
                 # overlapping IDs, not unique
                 showWarningPopup("Mapping Configuration IDs must be unique.\n"
-                    + "The ID " + ConfigID + " has already been assigned.\n"
+                    + "The ID " + dest_config_id + " has already been assigned.\n"
                     + "Choose a different Mapping Configuration ID for this new Configuration.")
                 # destroy the popup
                 clearWindow("duplicateConfigPopup")
                 return
     # ID is acceptable, duplicate the config
-    temp = config
-    DuplicateConfig = temp
-    # set the duplicate config's ID
-    DuplicateConfig.update(id = ConfigID)
+    dest_config = MappingConfiguration(dest_config_id, config.mappings, config.machine)
+    # open the interface config file
+    Interface_Config_File = openConfigFile()
+    # get the model index
+    model_index = Interface_Config_File['models'].index(Model.modelToDict(model))
+    # get the machine index
+    machine_index = model.machines.index(machine)
     # add the new config to the machine object
-    machine_file['mappings'].append(DuplicateConfig)
+    machine.mapping_configurations.append(dest_config)
     # fix corrupt character writing
-    for curr_mapping in machine_file['mappings']:
-        for curr_item in curr_mapping['configuration']:
-            curr_item['item'] = curr_item['item'].replace('Ã˜', 'Ø')
-            curr_item['item'] = curr_item['item'].replace('Â±', '±')
-    # write the machine's information to its file after appending the new mapping
-    # timestamp the file
-    machine_file = timestamp(machine_file,
-        "Duplicate Configuration: " + str(machine['name']) + "; ID # " + str(DuplicateConfig['id']))
-    # reformat the machine_file text into JSON
-    machine_file = dumps(machine_file, indent = 4)
-    # open the machine's file
-    File = open(os.path.join(sys_env_dir, "config", "mapping configurations", 
-        model['model_name'], machine['name'] + ".json"), 'w')
-    # write to the file
-    File.write(machine_file)
-    # close the machine file
-    File.close()
+    for curr_mapping in machine.mapping_configurations:
+        for curr_map in curr_mapping.mappings:
+            # save the current map
+            item = curr_map['item']
+            item = item.replace('Ã˜', 'Ø')
+            item = item.replace('Â±', '±')
+    # update the machine in the model's list
+    model.machines[machine_index] = machine
+    # update the model in the config file
+    Interface_Config_File['models'][model_index] = Model.modelToDict(model)
+    # overwrite the KIM Interface config file
+    overwriteConfigFile(Interface_Config_File, "Duplicate Config: copied " + config.id_num 
+        + " --> " + dest_config.id_num)
     # clear the Popup alias
     clearWindow("confirmPopup")
     # create the confirmation popup
@@ -1386,8 +1378,8 @@ def commitConfigDuplicate(sender, app_data, user_data):
     with Popup:
         # add a success message
         dpg.add_text("Success:", color = [150, 150, 255])
-        dpg.add_text("Your duplicate mapping configuration ID # " + DuplicateConfig['id'] 
-            + "\nfor " + machine['name'] + " has been created.")
+        dpg.add_text("Your duplicate " + str(dest_config)
+            + "\nfor " + str(machine) + " has been created.")
         # add an Okay button
         dpg.add_button(label = "Okay!", pos = [125, 100], width = 150, height = 25,
             callback = viewConfig, user_data = [model, machine, config])
@@ -1688,12 +1680,10 @@ def editConfig(sender, app_data, user_data):
 
 # duplicate config flow
 def duplicateConfig(sender, app_data, user_data):
-    """duplicateConfig(user_data = [continueCode, model, machine, config])
+    """duplicateConfig(user_data = [model, machine, config])
     
     ViewConfigWindow -> DuplicateConfigWindow
 
-    continueCode: str; the continue code that dictates the next window to open;
-        the current action flow of the program.
     model: model; the model owning the config that is being duplicated.
     machine: machine; the machine owning the duplicated config.
     config: config; the config being duplicated.
@@ -1701,14 +1691,12 @@ def duplicateConfig(sender, app_data, user_data):
     Invokes the UI flow from the viewConfigWindow to the duplicateConfigWindow.
     Invoked by clicking the Duplicate this config button on the viewConfigWindow
     """
-    # get continue code
-    continueCode = user_data[0]
     # get the model
-    model = user_data[1]
+    model = user_data[0]
     # get the machine
-    machine = user_data[2]
+    machine = user_data[1]
     # get the config to duplicate
-    DuplicatedConfig = user_data[3]
+    source_config = user_data[2]
     # clear the duplicateConfigPopup window
     clearWindow("duplicateConfigPopup")
     # create a popup to get the duplicate config's ID
@@ -1719,15 +1707,14 @@ def duplicateConfig(sender, app_data, user_data):
     # add items to the popup
     with Popup:
         # add a label
-        dpg.add_text("Duplicating Mapping Configuration ID #" + str(DuplicatedConfig['id'])
+        dpg.add_text("Duplicating Mapping Configuration ID #" + source_config.id_num
             + "\nPlease enter the duplicate Configuration's ID:")
         # add an input box
         IDInput = dpg.add_input_text(hint = "ID #...", width = 300, 
-            default_value = DuplicatedConfig['id'])
+            default_value = source_config.id_num)
         # add an add field button
         dpg.add_button(label = "Duplicate Configuration", pos = [5, 100], 
-            callback = commitConfigDuplicate, user_data = 
-            ["duplicateConfig", model, machine, DuplicatedConfig, IDInput])
+            callback = commitConfigDuplicate, user_data = [model, machine, source_config, IDInput])
         # add a cancel button
         dpg.add_button(label = "Cancel", pos = [200, 100], 
             callback = deleteItem, user_data = ["duplicateConfigPopup"])
@@ -1785,7 +1772,7 @@ def viewConfig(sender, app_data, user_data):
         dpg.add_button(label = "Remove this Configuration     !!", pos = [800, 250],
             callback = removeConfig, user_data = ["removeConfig", model, machine, config])
         dpg.add_button(label = "Duplicate this Configuration  ->", pos = [800, 275],
-            callback = duplicateConfig, user_data = ["duplicateConfig", model, machine, config])
+            callback = duplicateConfig, user_data = [model, machine, config])
 
 # select config flow
 def selectConfig(sender, app_data, user_data):
